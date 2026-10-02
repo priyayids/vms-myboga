@@ -10,6 +10,7 @@ import com.visitorbridge.mapper.VisitorMapper;
 import com.visitorbridge.model.UserType;
 import com.visitorbridge.model.Visitor;
 import com.visitorbridge.repository.VisitorRepository;
+import com.visitorbridge.repository.WebhookEventLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class VisitorServiceTest {
     private VisitorRepository visitorRepository;
 
     @Mock
+    private WebhookEventLogRepository webhookEventLogRepository;
+
+    @Mock
     private NuveqVisitorClient nuveqVisitorClient;
 
     @Mock
@@ -48,7 +52,7 @@ class VisitorServiceTest {
     @BeforeEach
     void setUp() {
         visitorMapper = Mappers.getMapper(VisitorMapper.class);
-        visitorService = new VisitorService(visitorRepository, visitorMapper, nuveqVisitorClient, transactionLogger);
+        visitorService = new VisitorService(visitorRepository, webhookEventLogRepository, visitorMapper, nuveqVisitorClient, transactionLogger);
     }
 
     private VisitorRegistrationRequest createSampleRequest(String regId, String cardNumber) {

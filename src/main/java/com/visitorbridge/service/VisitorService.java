@@ -2,19 +2,25 @@ package com.visitorbridge.service;
 
 import com.visitorbridge.client.NuveqCreateVisitorRequest;
 import com.visitorbridge.client.NuveqCreateVisitorResponse;
+import com.visitorbridge.client.NuveqEventDto;
 import com.visitorbridge.client.NuveqVisitorClient;
 import com.visitorbridge.dto.ReservationResponseDto;
 import com.visitorbridge.dto.VisitorRegistrationRequest;
 import com.visitorbridge.dto.VisitorResponseDto;
+import com.visitorbridge.dto.WebhookProcessingResult;
 import com.visitorbridge.mapper.VisitorMapper;
 import com.visitorbridge.model.UserType;
 import com.visitorbridge.model.Visitor;
+import com.visitorbridge.model.WebhookEventLog;
 import com.visitorbridge.repository.VisitorRepository;
+import com.visitorbridge.repository.WebhookEventLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +30,7 @@ import java.util.Optional;
 public class VisitorService {
 
     private final VisitorRepository visitorRepository;
+    private final WebhookEventLogRepository webhookEventLogRepository;
     private final VisitorMapper visitorMapper;
     private final NuveqVisitorClient nuveqVisitorClient;
     private final TransactionLogger transactionLogger;
@@ -117,17 +124,60 @@ public class VisitorService {
     }
 
     @Transactional
+    public WebhookProcessingResult processCardEvent(NuveqEventDto event, String rawPayload) {
+        String cardNumber = null;
+        if (event != null) {
+            if (event.getCardNo() != null) {
+                cardNumber = String.valueOf(event.getCardNo());
+            } else if (event.getCardId() != null) {
+                cardNumber = String.valueOf(event.getCardId());
+            }
+        }
+        String direction = (event != null) ? event.getDirection() : null;
+        return processEventWithLogging(cardNumber, direction, event, rawPayload);
+    }
+
+    @Transactional
     public boolean processCardEvent(String cardNumber, String direction) {
+        WebhookProcessingResult result = processEventWithLogging(cardNumber, direction, null,
+                "{\"cardNumber\":\"" + cardNumber + "\",\"direction\":\"" + direction + "\"}");
+        return result.isMatched() && result.getActionTaken().startsWith("STATUS_ENTRY_UPDATE");
+    }
+
+    private WebhookProcessingResult processEventWithLogging(
+            String cardNumber, String direction, NuveqEventDto event, String rawPayload) {
+
         String maskedCard = TransactionLogger.maskCardNumber(cardNumber);
+        String eventType = (event != null && event.getEventName() != null) ? event.getEventName() : "CARD_SWIPE";
+
+        if (cardNumber == null || cardNumber.isBlank()) {
+            log.warn("Webhook card event missing card number: {}", rawPayload);
+            recordWebhookLog(eventType, null, direction, event, null, null, "INVALID_MISSING_CARD", rawPayload);
+            return WebhookProcessingResult.builder()
+                    .cardNumber(null)
+                    .direction(direction)
+                    .matched(false)
+                    .actionTaken("INVALID_MISSING_CARD")
+                    .build();
+        }
+
         List<Visitor> visitors = visitorRepository.findByCardNumber(cardNumber);
 
         if (visitors.isEmpty()) {
             log.info("Card event ignored: unknown card number {}", maskedCard);
             transactionLogger.logTransaction("CardEventProcessor", "N/A", "CARD_EVENT", "IGNORED_UNKNOWN_CARD",
                     "card=" + maskedCard);
-            return false;
+            recordWebhookLog(eventType, cardNumber, direction, event, null, null, "UNKNOWN_CARD_IGNORED", rawPayload);
+
+            return WebhookProcessingResult.builder()
+                    .cardNumber(cardNumber)
+                    .direction(direction)
+                    .matched(false)
+                    .actionTaken("UNKNOWN_CARD_IGNORED")
+                    .build();
         }
 
+        // Match target instance by direction or first unentered
         Visitor target = null;
         if ("OUT".equalsIgnoreCase(direction)) {
             target = visitors.stream()
@@ -141,7 +191,6 @@ public class VisitorService {
                     .orElse(null);
         }
 
-        // If direction not specified or matched entity not found, pick first unentered
         if (target == null) {
             Optional<Visitor> unenteredCheckIn = visitors.stream()
                     .filter(v -> v.getUserType() == UserType.CHECK_IN && !Boolean.TRUE.equals(v.getStatusEntry()))
@@ -161,25 +210,89 @@ public class VisitorService {
             log.debug("Card event ignored: all visitor instances already have statusEntry=true for card {}", maskedCard);
             transactionLogger.logTransaction("CardEventProcessor", visitors.get(0).getRegistrationId(),
                     "CARD_EVENT", "IGNORED_ALREADY_ENTERED", "card=" + maskedCard);
-            return false;
+            recordWebhookLog(eventType, cardNumber, direction, event, null, visitors.get(0).getRegistrationId(),
+                    "IGNORED_ALREADY_ENTERED", rawPayload);
+
+            return WebhookProcessingResult.builder()
+                    .cardNumber(cardNumber)
+                    .direction(direction)
+                    .matched(true)
+                    .actionTaken("IGNORED_ALREADY_ENTERED")
+                    .matchedRegistrationId(visitors.get(0).getRegistrationId())
+                    .build();
         }
 
         if (Boolean.TRUE.equals(target.getStatusEntry())) {
             log.debug("Card event ignored: target instance {} already entered for card {}", target.getUserType(), maskedCard);
-            return false;
+            recordWebhookLog(eventType, cardNumber, direction, event, target.getId(), target.getRegistrationId(),
+                    "IGNORED_ALREADY_ENTERED", rawPayload);
+
+            return WebhookProcessingResult.builder()
+                    .cardNumber(cardNumber)
+                    .direction(direction)
+                    .matched(true)
+                    .actionTaken("IGNORED_ALREADY_ENTERED")
+                    .matchedRegistrationId(target.getRegistrationId())
+                    .matchedUserType(target.getUserType().name())
+                    .build();
         }
 
         // Thread-safe conditional update
-        int updated = visitorRepository.markStatusEntryById(target.getId(), java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC));
+        int updated = visitorRepository.markStatusEntryById(target.getId(), OffsetDateTime.now(ZoneOffset.UTC));
+        String action = "STATUS_ENTRY_UPDATE_" + target.getUserType();
+
         if (updated > 0) {
-            log.info("Visitor statusEntry updated to true for card {} (type={})", maskedCard, target.getUserType());
+            log.info("Visitor statusEntry updated to true for card {} (type={}, regId={})",
+                    maskedCard, target.getUserType(), target.getRegistrationId());
             transactionLogger.logTransaction("CardEventProcessor", target.getRegistrationId(),
                     "STATUS_ENTRY_UPDATE", "SUCCESS",
                     "userType=" + target.getUserType() + " card=" + maskedCard);
-            return true;
+
+            recordWebhookLog(eventType, cardNumber, direction, event, target.getId(), target.getRegistrationId(),
+                    action, rawPayload);
+
+            return WebhookProcessingResult.builder()
+                    .cardNumber(cardNumber)
+                    .direction(direction)
+                    .matched(true)
+                    .actionTaken(action)
+                    .matchedRegistrationId(target.getRegistrationId())
+                    .matchedUserType(target.getUserType().name())
+                    .build();
         }
 
-        return false;
+        recordWebhookLog(eventType, cardNumber, direction, event, target.getId(), target.getRegistrationId(),
+                "CONCURRENCY_SKIPPED", rawPayload);
+
+        return WebhookProcessingResult.builder()
+                .cardNumber(cardNumber)
+                .direction(direction)
+                .matched(true)
+                .actionTaken("CONCURRENCY_SKIPPED")
+                .matchedRegistrationId(target.getRegistrationId())
+                .matchedUserType(target.getUserType().name())
+                .build();
+    }
+
+    private void recordWebhookLog(String eventType, String cardNumber, String direction,
+                                  NuveqEventDto event, java.util.UUID visitorId, String registrationId,
+                                  String actionTaken, String rawPayload) {
+        try {
+            WebhookEventLog logEntry = WebhookEventLog.builder()
+                    .eventType(eventType)
+                    .cardNumber(cardNumber)
+                    .direction(direction)
+                    .doorId(event != null ? event.getDoorId() : null)
+                    .siteId(event != null ? event.getSiteId() : null)
+                    .matchedVisitorId(visitorId)
+                    .matchedRegistrationId(registrationId)
+                    .actionTaken(actionTaken)
+                    .rawPayload(rawPayload != null ? rawPayload : "{}")
+                    .build();
+            webhookEventLogRepository.save(logEntry);
+        } catch (Exception ex) {
+            log.error("Failed to save webhook event log to database: {}", ex.getMessage(), ex);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -187,5 +300,10 @@ public class VisitorService {
         return visitorRepository.findByRegistrationId(registrationId).stream()
                 .map(visitorMapper::toDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<WebhookEventLog> getRecentWebhookLogs() {
+        return webhookEventLogRepository.findTop20ByOrderByReceivedAtDesc();
     }
 }

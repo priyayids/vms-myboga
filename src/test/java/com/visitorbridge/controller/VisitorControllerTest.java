@@ -157,11 +157,18 @@ class VisitorControllerTest {
                 }
                 """;
 
+        when(visitorService.processCardEvent(org.mockito.ArgumentMatchers.any(com.visitorbridge.client.NuveqEventDto.class), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(com.visitorbridge.dto.WebhookProcessingResult.builder()
+                        .cardNumber("12345678")
+                        .matched(true)
+                        .actionTaken("STATUS_ENTRY_UPDATE_CHECK_IN")
+                        .build());
+
         mockMvc.perform(post("/api/v1/events/nuveq-webhook")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventPayload))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").value("Processed"));
+                .andExpect(jsonPath("$.data.totalReceived").value(1));
     }
 }
