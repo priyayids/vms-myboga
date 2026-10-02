@@ -18,6 +18,11 @@ public interface VisitorRepository extends JpaRepository<Visitor, UUID> {
 
     List<Visitor> findByRegistrationId(String registrationId);
 
+    List<Visitor> findByRegistrationIdIn(List<String> registrationIds);
+
+    @Query("SELECT v FROM Visitor v WHERE v.registrationId = :regId OR v.registrationId LIKE CONCAT(:regId, '_%')")
+    List<Visitor> findAllByBaseRegistrationId(@Param("regId") String regId);
+
     Optional<Visitor> findByRegistrationIdAndUserType(String registrationId, UserType userType);
 
     List<Visitor> findByCardNumber(String cardNumber);

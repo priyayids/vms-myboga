@@ -62,17 +62,17 @@ class VisitorControllerTest {
 
         VisitorResponseDto checkIn = VisitorResponseDto.builder()
                 .id(UUID.randomUUID())
-                .registrationId("REG-100")
+                .registrationId("REG-100_in")
                 .userType(UserType.CHECK_IN)
-                .fullName("Alice Wonderland")
+                .fullName("Alice Wonderland_in")
                 .statusEntry(false)
                 .build();
 
         VisitorResponseDto checkOut = VisitorResponseDto.builder()
                 .id(UUID.randomUUID())
-                .registrationId("REG-100")
+                .registrationId("REG-100_out")
                 .userType(UserType.CHECK_OUT)
-                .fullName("Alice Wonderland")
+                .fullName("Alice Wonderland_out")
                 .statusEntry(false)
                 .build();
 

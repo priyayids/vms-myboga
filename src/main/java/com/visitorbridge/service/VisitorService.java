@@ -37,16 +37,19 @@ public class VisitorService {
 
     @Transactional
     public ReservationResponseDto registerVisitor(VisitorRegistrationRequest request) {
-        String regId = request.getRegistrationId();
-        String maskedCard = TransactionLogger.maskCardNumber(request.getCardNumber());
+        String baseRegId = request.getRegistrationId();
+        String cleanBaseId = baseRegId.replaceAll("(?i)_(in|out)$", "");
+        String regIdIn = cleanBaseId + "_in";
+        String regIdOut = cleanBaseId + "_out";
 
-        transactionLogger.logTransaction("RegistrationService", regId, "REGISTRATION_RECEIVED", "RECEIVED",
+        String maskedCard = TransactionLogger.maskCardNumber(request.getCardNumber());
+        transactionLogger.logTransaction("RegistrationService", baseRegId, "REGISTRATION_RECEIVED", "RECEIVED",
                 "card=" + maskedCard);
 
-        // FR-1 Idempotency Check
-        List<Visitor> existingList = visitorRepository.findByRegistrationId(regId);
+        // FR-1 Idempotency Check: search by both suffixed IDs and base ID
+        List<Visitor> existingList = visitorRepository.findByRegistrationIdIn(List.of(regIdIn, regIdOut, baseRegId));
         if (!existingList.isEmpty()) {
-            transactionLogger.logTransaction("RegistrationService", regId, "REGISTRATION_IDEMPOTENT", "EXISTING_RETURNED",
+            transactionLogger.logTransaction("RegistrationService", baseRegId, "REGISTRATION_IDEMPOTENT", "EXISTING_RETURNED",
                     "found=" + existingList.size());
 
             Visitor checkIn = existingList.stream()
@@ -60,31 +63,43 @@ public class VisitorService {
                     .orElse(null);
 
             return ReservationResponseDto.builder()
-                    .registrationId(regId)
+                    .registrationId(baseRegId)
                     .idempotent(true)
                     .checkIn(visitorMapper.toDto(checkIn))
                     .checkOut(checkOut != null ? visitorMapper.toDto(checkOut) : null)
                     .build();
         }
 
-        // FR-2 Create two visitor instances (CHECK_IN & CHECK_OUT)
+        // FR-2 Create two distinct visitor instances with _in and _out on registrationId and name
+        String nameIn = request.getFullName() + "_in";
+        String nameOut = request.getFullName() + "_out";
+
+        String cardIn = request.getCardNumber();
+        String cardOut = (request.getCheckOutCardNumber() != null && !request.getCheckOutCardNumber().isBlank())
+                ? request.getCheckOutCardNumber()
+                : request.getCardNumber();
+
         Visitor checkInEntity = visitorMapper.toEntity(request, UserType.CHECK_IN);
+        checkInEntity.setRegistrationId(regIdIn);
+        checkInEntity.setFullName(nameIn);
+        checkInEntity.setCardNumber(cardIn);
+
         Visitor checkOutEntity = visitorMapper.toEntity(request, UserType.CHECK_OUT);
+        checkOutEntity.setRegistrationId(regIdOut);
+        checkOutEntity.setFullName(nameOut);
+        checkOutEntity.setCardNumber(cardOut);
 
         checkInEntity = visitorRepository.save(checkInEntity);
         checkOutEntity = visitorRepository.save(checkOutEntity);
 
-        // Convert card number to numeric credentialNumber for Nuveq API
-        Long credentialNum;
-        try {
-            credentialNum = Long.parseLong(request.getCardNumber().replaceAll("[^0-9]", ""));
-        } catch (Exception e) {
-            credentialNum = (long) Math.abs(request.getCardNumber().hashCode());
-        }
+        // Convert card numbers to numeric credentialNumber for Nuveq API
+        Long credNumIn = parseCredentialNumber(cardIn);
+        Long credNumOut = parseCredentialNumber(cardOut);
 
-        NuveqCreateVisitorRequest nuveqReq = NuveqCreateVisitorRequest.builder()
-                .name(request.getFullName())
-                .credentialNumber(credentialNum)
+        // 1. Push Check-In instance to Nuveq
+        NuveqCreateVisitorRequest nuveqReqIn = NuveqCreateVisitorRequest.builder()
+                .name(nameIn)
+                .credentialNumber(credNumIn)
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .userPhoto(request.getUserPhoto())
@@ -96,31 +111,52 @@ public class VisitorService {
                 .allowedDoorIds(request.getAllowedDoorIds())
                 .build();
 
-        // Push Check-In instance to Nuveq
-        NuveqCreateVisitorResponse checkInResp = nuveqVisitorClient.createVisitor(nuveqReq, regId);
+        NuveqCreateVisitorResponse checkInResp = nuveqVisitorClient.createVisitor(nuveqReqIn, regIdIn);
         if (checkInResp != null && checkInResp.getData() != null) {
             checkInEntity.setNuveqVisitorId(String.valueOf(checkInResp.getData().getVisitorId()));
             checkInEntity.setNuveqRegistrationId(String.valueOf(checkInResp.getData().getVisitorRegistrationId()));
             checkInEntity = visitorRepository.save(checkInEntity);
         }
 
-        // Push Check-Out instance to Nuveq
-        NuveqCreateVisitorResponse checkOutResp = nuveqVisitorClient.createVisitor(nuveqReq, regId);
+        // 2. Push Check-Out instance to Nuveq
+        NuveqCreateVisitorRequest nuveqReqOut = NuveqCreateVisitorRequest.builder()
+                .name(nameOut)
+                .credentialNumber(credNumOut)
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .userPhoto(request.getUserPhoto())
+                .vehicleNumber(request.getVehicleNumber())
+                .visitStart(request.getVisitStart())
+                .visitEnd(request.getVisitEnd())
+                .siteId(request.getSiteId())
+                .liftGroupId(request.getLiftGroupId())
+                .allowedDoorIds(request.getAllowedDoorIds())
+                .build();
+
+        NuveqCreateVisitorResponse checkOutResp = nuveqVisitorClient.createVisitor(nuveqReqOut, regIdOut);
         if (checkOutResp != null && checkOutResp.getData() != null) {
             checkOutEntity.setNuveqVisitorId(String.valueOf(checkOutResp.getData().getVisitorId()));
             checkOutEntity.setNuveqRegistrationId(String.valueOf(checkOutResp.getData().getVisitorRegistrationId()));
             checkOutEntity = visitorRepository.save(checkOutEntity);
         }
 
-        transactionLogger.logTransaction("RegistrationService", regId, "CREATE_VISITOR", "SUCCESS",
-                "checkInId=" + checkInEntity.getId() + " checkOutId=" + checkOutEntity.getId());
+        transactionLogger.logTransaction("RegistrationService", baseRegId, "CREATE_VISITOR", "SUCCESS",
+                "checkInId=" + checkInEntity.getId() + " (" + regIdIn + ") checkOutId=" + checkOutEntity.getId() + " (" + regIdOut + ")");
 
         return ReservationResponseDto.builder()
-                .registrationId(regId)
+                .registrationId(baseRegId)
                 .idempotent(false)
                 .checkIn(visitorMapper.toDto(checkInEntity))
                 .checkOut(visitorMapper.toDto(checkOutEntity))
                 .build();
+    }
+
+    private Long parseCredentialNumber(String cardNumber) {
+        try {
+            return Long.parseLong(cardNumber.replaceAll("[^0-9]", ""));
+        } catch (Exception e) {
+            return (long) Math.abs(cardNumber.hashCode());
+        }
     }
 
     @Transactional
@@ -177,14 +213,16 @@ public class VisitorService {
                     .build();
         }
 
-        // Match target instance by direction or first unentered
+        // Match target instance: check direction, userName suffix (_in / _out), or first unentered
         Visitor target = null;
-        if ("OUT".equalsIgnoreCase(direction)) {
+        String userName = (event != null) ? event.getUserName() : null;
+
+        if ("OUT".equalsIgnoreCase(direction) || (userName != null && userName.toLowerCase().endsWith("_out"))) {
             target = visitors.stream()
                     .filter(v -> v.getUserType() == UserType.CHECK_OUT)
                     .findFirst()
                     .orElse(null);
-        } else if ("IN".equalsIgnoreCase(direction)) {
+        } else if ("IN".equalsIgnoreCase(direction) || (userName != null && userName.toLowerCase().endsWith("_in"))) {
             target = visitors.stream()
                     .filter(v -> v.getUserType() == UserType.CHECK_IN)
                     .findFirst()
@@ -297,7 +335,7 @@ public class VisitorService {
 
     @Transactional(readOnly = true)
     public List<VisitorResponseDto> getVisitorsByRegistrationId(String registrationId) {
-        return visitorRepository.findByRegistrationId(registrationId).stream()
+        return visitorRepository.findAllByBaseRegistrationId(registrationId).stream()
                 .map(visitorMapper::toDto)
                 .toList();
     }

@@ -50,7 +50,8 @@ flowchart LR
 | **User Photo** | `userPhoto` | String (URL) | File Upload / Web Camera | No | Hosted image URL or cloud storage URL. |
 | **Visit Start** | `visitStart` | String (ISO-8601) | Date-Time Picker | **Yes** | Must include timezone offset (e.g. `2026-10-02T08:00:00+07:00`). Cannot be in past. |
 | **Visit End** | `visitEnd` | String (ISO-8601) | Date-Time Picker | **Yes** | Must be after `visitStart` (e.g. `2026-10-02T17:00:00+07:00`). |
-| **Access Card Number**| `cardNumber` | String | Text / RFID Scanner | **Yes** | Numeric card number (e.g. `1253646425`). Supports barcode/NFC scanner input. |
+| **Check-In Card** | `cardNumber` | String | Text / RFID Scanner | **Yes** | Primary card number used for Check-In (`_in`). |
+| **Check-Out Card** | `checkOutCardNumber` | String | Text / RFID Scanner | No | Optional distinct card for Check-Out (`_out`). If omitted, defaults to `cardNumber`. |
 | **Site** | `siteId` | Number (Long) | Select Dropdown | **Yes** | Selected from active sites (Default: `167` - "Jakarta meruya"). |
 | **Lift Group** | `liftGroupId` | Number (Long) | Select Dropdown | **Yes** | Selected from active lift groups (Default: `630` - "Full Access"). |
 | **Allowed Doors** | `allowedDoorIds` | Array[Number] | Multi-select Checkboxes | **Yes** | At least 1 door selected (e.g. `[2596, 4904]`). |
@@ -99,9 +100,9 @@ Returned when a new registration is successfully processed or when an existing r
     "idempotent": false,
     "checkIn": {
       "id": "5d2f9dd1-5d7c-4569-8ab6-ab4f1404fc91",
-      "registrationId": "REG-20261002-8921",
+      "registrationId": "REG-20261002-8921_in",
       "userType": "CHECK_IN",
-      "fullName": "Jane Doe",
+      "fullName": "Jane Doe_in",
       "email": "jane.doe@example.com",
       "phone": "+6281234567890",
       "userPhoto": "https://storage.googleapis.com/nuveq_live_storage/user_photos/example.jpg",
@@ -120,9 +121,9 @@ Returned when a new registration is successfully processed or when an existing r
     },
     "checkOut": {
       "id": "c0cd9557-ecef-420f-81e8-6c3eb353ff0b",
-      "registrationId": "REG-20261002-8921",
+      "registrationId": "REG-20261002-8921_out",
       "userType": "CHECK_OUT",
-      "fullName": "Jane Doe",
+      "fullName": "Jane Doe_out",
       "email": "jane.doe@example.com",
       "phone": "+6281234567890",
       "userPhoto": "https://storage.googleapis.com/nuveq_live_storage/user_photos/example.jpg",

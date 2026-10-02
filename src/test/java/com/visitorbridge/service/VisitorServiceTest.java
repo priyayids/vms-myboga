@@ -73,11 +73,11 @@ class VisitorServiceTest {
     }
 
     @Test
-    @DisplayName("Should create two instances (CHECK_IN and CHECK_OUT) and push to Nuveq on new registration")
+    @DisplayName("Should create two instances (CHECK_IN and CHECK_OUT) with _in and _out suffixes and push to Nuveq")
     void testRegisterNewVisitorSuccess() {
         VisitorRegistrationRequest request = createSampleRequest("REG-001", "12345678");
 
-        when(visitorRepository.findByRegistrationId("REG-001")).thenReturn(Collections.emptyList());
+        when(visitorRepository.findByRegistrationIdIn(anyList())).thenReturn(Collections.emptyList());
         when(visitorRepository.save(any(Visitor.class))).thenAnswer(invocation -> {
             Visitor v = invocation.getArgument(0);
             if (v.getId() == null) {
@@ -89,7 +89,7 @@ class VisitorServiceTest {
         NuveqCreateVisitorResponse nuveqResp = new NuveqCreateVisitorResponse(
                 0, "Success", new NuveqCreateVisitorResponse.CreateVisitorData(1001L, 2001L)
         );
-        when(nuveqVisitorClient.createVisitor(any(NuveqCreateVisitorRequest.class), eq("REG-001")))
+        when(nuveqVisitorClient.createVisitor(any(NuveqCreateVisitorRequest.class), anyString()))
                 .thenReturn(nuveqResp);
 
         ReservationResponseDto response = visitorService.registerVisitor(request);
@@ -100,11 +100,16 @@ class VisitorServiceTest {
         assertThat(response.getCheckOut()).isNotNull();
         assertThat(response.getCheckIn().getUserType()).isEqualTo(UserType.CHECK_IN);
         assertThat(response.getCheckOut().getUserType()).isEqualTo(UserType.CHECK_OUT);
+        assertThat(response.getCheckIn().getRegistrationId()).isEqualTo("REG-001_in");
+        assertThat(response.getCheckIn().getFullName()).isEqualTo("John Doe_in");
+        assertThat(response.getCheckOut().getRegistrationId()).isEqualTo("REG-001_out");
+        assertThat(response.getCheckOut().getFullName()).isEqualTo("John Doe_out");
         assertThat(response.getCheckIn().getStatusEntry()).isFalse();
         assertThat(response.getCheckOut().getStatusEntry()).isFalse();
 
-        // Verify Nuveq was called twice (once for check-in, once for check-out)
-        verify(nuveqVisitorClient, times(2)).createVisitor(any(NuveqCreateVisitorRequest.class), eq("REG-001"));
+        // Verify Nuveq was called twice with respective suffixed IDs
+        verify(nuveqVisitorClient).createVisitor(any(NuveqCreateVisitorRequest.class), eq("REG-001_in"));
+        verify(nuveqVisitorClient).createVisitor(any(NuveqCreateVisitorRequest.class), eq("REG-001_out"));
     }
 
     @Test
@@ -113,9 +118,9 @@ class VisitorServiceTest {
         VisitorRegistrationRequest request = createSampleRequest("REG-002", "87654321");
 
         Visitor existingCheckIn = Visitor.builder()
-                .registrationId("REG-002")
+                .registrationId("REG-002_in")
                 .userType(UserType.CHECK_IN)
-                .fullName("John Doe")
+                .fullName("John Doe_in")
                 .cardNumber("87654321")
                 .allowedDoorIds("1,2")
                 .statusEntry(false)
@@ -123,16 +128,16 @@ class VisitorServiceTest {
         existingCheckIn.setId(UUID.randomUUID());
 
         Visitor existingCheckOut = Visitor.builder()
-                .registrationId("REG-002")
+                .registrationId("REG-002_out")
                 .userType(UserType.CHECK_OUT)
-                .fullName("John Doe")
+                .fullName("John Doe_out")
                 .cardNumber("87654321")
                 .allowedDoorIds("1,2")
                 .statusEntry(false)
                 .build();
         existingCheckOut.setId(UUID.randomUUID());
 
-        when(visitorRepository.findByRegistrationId("REG-002"))
+        when(visitorRepository.findByRegistrationIdIn(anyList()))
                 .thenReturn(List.of(existingCheckIn, existingCheckOut));
 
         ReservationResponseDto response = visitorService.registerVisitor(request);

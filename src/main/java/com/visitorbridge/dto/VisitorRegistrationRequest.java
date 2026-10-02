@@ -55,4 +55,6 @@ public class VisitorRegistrationRequest {
 
     @NotBlank(message = "cardNumber is required")
     private String cardNumber;
+
+    private String checkOutCardNumber;
 }
