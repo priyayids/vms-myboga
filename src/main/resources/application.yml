@@ -1,0 +1,46 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: visitor-middleware
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/visitor_bridge}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+nuveq:
+  base-url: ${NUVEQ_BASE_URL:https://api-v2.nuveq.cloud}
+  api-key: ${NUVEQ_API_KEY:}
+  connect-timeout: 5s
+  read-timeout: 10s
+  max-retries: 3
+  backoff-delay-ms: 500
+  event-listener:
+    mode: webhook # webhook or polling
+    polling-interval-ms: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/visitor_bridge}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+nuveq:
+  base-url: ${NUVEQ_BASE_URL:https://api-v2.nuveq.cloud}
+  api-key: ${NUVEQ_API_KEY:local-dev-key}

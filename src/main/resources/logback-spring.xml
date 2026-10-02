@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+    <property name="LOG_DIR" value="logs" />
+    <property name="APP_LOG" value="${LOG_DIR}/application.log" />
+    <property name="TX_LOG" value="${LOG_DIR}/transactions.log" />
+
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} | %-5level | %logger{36} | %msg%n" />
+    <property name="TX_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} | %-5level | %logger{36} | %msg%n" />
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- General Application Log File -->
+    <appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${APP_LOG}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/application-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Business Transactions Log File -->
+    <appender name="TRANSACTIONS_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${TX_LOG}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/transactions-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${TX_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Dedicated Transaction Logger -->
+    <logger name="com.visitorbridge.transaction" level="INFO" additivity="true">
+        <appender-ref ref="TRANSACTIONS_FILE" />
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="APPLICATION_FILE" />
+    </root>
+</configuration>

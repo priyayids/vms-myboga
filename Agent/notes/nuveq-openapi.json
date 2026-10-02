@@ -1,0 +1,3165 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "AppController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": []
+      }
+    },
+    "/api/access-groups": {
+      "get": {
+        "operationId": "AccessGroupsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessGroupArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "access groups"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/controllers": {
+      "get": {
+        "operationId": "ControllersController_findAll",
+        "parameters": [
+          {
+            "name": "after",
+            "required": true,
+            "in": "query",
+            "description": "id",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": true,
+            "in": "query",
+            "description": "0-1000",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControllerArrayResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Maximum can only query 1000 data."
+          }
+        },
+        "tags": [
+          "controllers"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/controllers/{id}": {
+      "get": {
+        "operationId": "ControllersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "controller id",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControllerResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "controllers"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/controllers/door/release": {
+      "post": {
+        "operationId": "ControllersController_doorRelease",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoorReleaseDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControllerDoorCommandResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "controllers"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/controllers/door/lock-unlock": {
+      "post": {
+        "operationId": "ControllersController_doorLockUnlock",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoorLockUnlockDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ControllerDoorCommandResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "controllers"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/departments": {
+      "get": {
+        "operationId": "DepartmentsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DepartmentArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "departments"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/events": {
+      "get": {
+        "operationId": "EventsController_findAll",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "description": "Date in YYYY-MM-DD format. Example: 2025-01-20",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "required": true,
+            "in": "query",
+            "description": "id",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": true,
+            "in": "query",
+            "description": "0-1000",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventArrayResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Maximum can only query 1000 data."
+          }
+        },
+        "tags": [
+          "events"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/lift-groups": {
+      "get": {
+        "operationId": "LiftGroupsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiftGroupArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "lift groups"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/posts": {
+      "get": {
+        "operationId": "PostsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "posts"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/sites": {
+      "get": {
+        "operationId": "SitesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "sites"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/shifts": {
+      "get": {
+        "operationId": "ShiftsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShiftArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "shifts"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users": {
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [
+          {
+            "name": "after",
+            "required": true,
+            "in": "query",
+            "description": "id",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": true,
+            "in": "query",
+            "description": "0-1000",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserArrayResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Maximum can only query 1000 data."
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "user id",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "put": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users/cards/{number}": {
+      "get": {
+        "operationId": "UsersController_findOneCardByNumber",
+        "parameters": [
+          {
+            "name": "number",
+            "required": true,
+            "in": "path",
+            "description": "card number",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCardResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users/cards": {
+      "put": {
+        "operationId": "UsersController_updateCardStatus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardStatusDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateCardStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "operationId": "UsersController_createCard",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCardResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_removeCard",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCardDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCardResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users/licenseplate": {
+      "put": {
+        "operationId": "UsersController_updateLicensePlateStatus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLicensePlateStatusDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateLicensePlateStatusResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "users"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors": {
+      "get": {
+        "operationId": "VisitorsController_findAll",
+        "parameters": [
+          {
+            "name": "after",
+            "required": true,
+            "in": "query",
+            "description": "id",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": true,
+            "in": "query",
+            "description": "0-1000",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitorArrayResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Maximum can only query 1000 data."
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      },
+      "post": {
+        "operationId": "VisitorsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVisitorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateVisitorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/registrations": {
+      "get": {
+        "operationId": "VisitorsController_findAllVisitorRegistration",
+        "parameters": [
+          {
+            "name": "after",
+            "required": true,
+            "in": "query",
+            "description": "id",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "first",
+            "required": true,
+            "in": "query",
+            "description": "0-1000",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitorRegistrationArrayResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Maximum can only query 1000 data."
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/doors": {
+      "get": {
+        "operationId": "VisitorsController_findAllVisitorDoors",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitorAllDoorArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/lift-groups": {
+      "get": {
+        "operationId": "VisitorsController_findAllVisitorLiftGroups",
+        "parameters": [
+          {
+            "name": "siteId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiftGroupArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/{id}": {
+      "get": {
+        "operationId": "VisitorsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "visitor id",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/repeat": {
+      "post": {
+        "operationId": "VisitorsController_addRepeatVisitor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRepeatVisitorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateVisitorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/visitors/registrations/{id}": {
+      "delete": {
+        "operationId": "VisitorsController_deleteVisitorRegistration",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateVisitorRegistrationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "visitors"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/webhooks": {
+      "post": {
+        "operationId": "WebhooksController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "webhooks"
+        ],
+        "security": [
+          {
+            "X-API-KEY": [
+              "X-API-KEY"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Nuveq Partner API",
+    "description": "",
+    "version": "2.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "X-API-KEY": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY"
+      }
+    },
+    "schemas": {
+      "AccessGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "number": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "number"
+        ]
+      },
+      "AccessGroupArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessGroupDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "ControllerSiteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ControllerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "mac": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "site": {
+            "$ref": "#/components/schemas/ControllerSiteDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "mac",
+          "mode",
+          "site"
+        ]
+      },
+      "ControllerArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ControllerDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "ControllerDoorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "doorNumber": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doorNumber"
+        ]
+      },
+      "ControllerWithDoorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "doors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ControllerDoorDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doors"
+        ]
+      },
+      "ControllerResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ControllerWithDoorDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "DoorReleaseDTO": {
+        "type": "object",
+        "properties": {
+          "controllerId": {
+            "type": "number"
+          },
+          "doorNumber": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "controllerId",
+          "doorNumber"
+        ]
+      },
+      "ControllerDoorCommandDto": {
+        "type": "object",
+        "properties": {
+          "controllerId": {
+            "type": "number"
+          },
+          "doorId": {
+            "type": "number"
+          },
+          "doorNumber": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "controllerId",
+          "doorId",
+          "doorNumber",
+          "message"
+        ]
+      },
+      "ControllerDoorCommandResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ControllerDoorCommandDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "DoorLockUnlockDTO": {
+        "type": "object",
+        "properties": {
+          "controllerId": {
+            "type": "number"
+          },
+          "doorNumber": {
+            "type": "number"
+          },
+          "lock": {
+            "type": "boolean",
+            "description": "true for lock door, false for unlock door."
+          },
+          "duration": {
+            "type": "number",
+            "description": "Number based on minute."
+          }
+        },
+        "required": [
+          "controllerId",
+          "doorNumber",
+          "lock"
+        ]
+      },
+      "DepartmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "DepartmentArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DepartmentDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "EventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "uuid": {
+            "type": "string"
+          },
+          "mac": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "number"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "siteId": {
+            "type": "number"
+          },
+          "siteName": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "number"
+          },
+          "cardNo": {
+            "type": "number"
+          },
+          "doorId": {
+            "type": "number"
+          },
+          "eventName": {
+            "type": "string"
+          },
+          "alarmEvent": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "attendance": {
+            "type": "boolean"
+          },
+          "visitor": {
+            "type": "boolean"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "deptId": {
+            "type": "number"
+          },
+          "dept": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "number"
+          },
+          "post": {
+            "type": "string"
+          },
+          "staffNo": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "level": {
+            "type": "number"
+          },
+          "record": {
+            "type": "number"
+          },
+          "date": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "plateNo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "uuid",
+          "mac",
+          "ownerId",
+          "ownerName",
+          "siteId",
+          "siteName",
+          "cardId",
+          "cardNo",
+          "doorId",
+          "eventName",
+          "attendance",
+          "visitor",
+          "userName",
+          "deptId",
+          "dept",
+          "postId",
+          "post",
+          "staffNo",
+          "type",
+          "direction",
+          "level",
+          "record",
+          "date",
+          "time",
+          "timezone",
+          "timestamp",
+          "plateNo"
+        ]
+      },
+      "EventArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventDto"
+            }
+          },
+          "cursor": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "LiftGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "number": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "number"
+        ]
+      },
+      "LiftGroupArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LiftGroupDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "PostDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PostArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "SiteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string"
+          },
+          "contactPhone": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "address2": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "nullable": true
+          },
+          "postcode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contactName",
+          "contactEmail",
+          "contactPhone",
+          "address",
+          "address2"
+        ]
+      },
+      "SiteArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SiteDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "ShiftDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "number": {
+            "type": "number"
+          },
+          "start": {
+            "type": "number"
+          },
+          "breakStart": {
+            "type": "number"
+          },
+          "breakEnd": {
+            "type": "number"
+          },
+          "end": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "start",
+          "breakStart",
+          "breakEnd",
+          "end"
+        ]
+      },
+      "ShiftArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShiftDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "photo": {
+            "type": "string",
+            "nullable": true
+          },
+          "staffNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "UserArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserDto"
+            }
+          },
+          "cursor": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "UserAccessGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserLiftGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserShiftDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserDepartmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserPostDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "UserCardDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "number": {
+            "type": "number"
+          },
+          "isBLE": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "isBLE",
+          "enabled",
+          "expiresAt"
+        ]
+      },
+      "UserSiteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "UserVehicleNumberDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "plateNumber": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "plateNumber",
+          "enabled"
+        ]
+      },
+      "FullUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "photo": {
+            "type": "string",
+            "nullable": true
+          },
+          "staffNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "accessGroup": {
+            "$ref": "#/components/schemas/UserAccessGroupDto"
+          },
+          "liftGroup": {
+            "$ref": "#/components/schemas/UserLiftGroupDto"
+          },
+          "shift": {
+            "$ref": "#/components/schemas/UserShiftDto"
+          },
+          "department": {
+            "$ref": "#/components/schemas/UserDepartmentDto"
+          },
+          "post": {
+            "$ref": "#/components/schemas/UserPostDto"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserCardDto"
+            }
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSiteDto"
+            }
+          },
+          "userField1": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField2": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField3": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField4": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "vehicleNumbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserVehicleNumberDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "accessGroup",
+          "liftGroup",
+          "shift",
+          "department",
+          "post",
+          "cards",
+          "sites",
+          "vehicleNumbers"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FullUserDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Person"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "example": "person@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "9483014014103"
+          },
+          "staffNumber": {
+            "type": "string",
+            "nullable": true,
+            "example": "ABC"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "example": "male"
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "example": "1978-12-30"
+          },
+          "accessGroupId": {
+            "type": "number"
+          },
+          "liftGroupId": {
+            "type": "number"
+          },
+          "shiftId": {
+            "type": "number"
+          },
+          "departmentId": {
+            "type": "number"
+          },
+          "postId": {
+            "type": "number"
+          },
+          "cardNumber": {
+            "type": "number",
+            "nullable": true,
+            "example": 123456
+          },
+          "cardPinNumber": {
+            "type": "number",
+            "nullable": true
+          },
+          "cardExpires": {
+            "type": "string",
+            "nullable": false,
+            "example": "2042-05-04"
+          },
+          "cardEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "bluetoothEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "accessGroupId",
+          "liftGroupId",
+          "shiftId",
+          "departmentId",
+          "postId",
+          "cardExpires",
+          "sites"
+        ]
+      },
+      "CreateUserResult": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "CreateUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreateUserResult"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "FullUserCardDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "cardId": {
+            "type": "number"
+          },
+          "isBLE": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "pinNumber": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "cardId",
+          "isBLE",
+          "enabled",
+          "pinNumber",
+          "expiresAt"
+        ]
+      },
+      "UserCardResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FullUserCardDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateCardStatusDTO": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cardId",
+          "enabled"
+        ]
+      },
+      "UpdateCardStatusResult": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "number"
+          },
+          "cardNumber": {
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cardId",
+          "cardNumber",
+          "enabled"
+        ]
+      },
+      "UpdateCardStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateCardStatusResult"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateLicensePlateStatusDTO": {
+        "type": "object",
+        "properties": {
+          "licensePlateId": {
+            "type": "number"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "licensePlateId",
+          "enabled"
+        ]
+      },
+      "UpdateLicensePlateStatusResult": {
+        "type": "object",
+        "properties": {
+          "licensePlateId": {
+            "type": "number"
+          },
+          "licensePlateNumber": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "licensePlateId",
+          "licensePlateNumber",
+          "enabled"
+        ]
+      },
+      "UpdateLicensePlateStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateLicensePlateStatusResult"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Person"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "example": "person@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "9483014014103"
+          },
+          "photo": {
+            "type": "string",
+            "nullable": true
+          },
+          "staffNumber": {
+            "type": "string",
+            "nullable": true,
+            "example": "ABC"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "example": "male"
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "example": "1978-12-30"
+          },
+          "accessGroupId": {
+            "type": "number"
+          },
+          "liftGroupId": {
+            "type": "number"
+          },
+          "shiftId": {
+            "type": "number"
+          },
+          "departmentId": {
+            "type": "number"
+          },
+          "postId": {
+            "type": "number"
+          },
+          "cardExpires": {
+            "type": "string",
+            "nullable": true,
+            "example": "2042-05-04"
+          },
+          "userField1": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField2": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField3": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "userField4": {
+            "type": "string",
+            "nullable": true,
+            "example": "abcd 1234"
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "vehicleNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "accessGroupId",
+          "liftGroupId",
+          "shiftId",
+          "departmentId",
+          "postId",
+          "sites"
+        ]
+      },
+      "CreateUserCardDTO": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "example": 123456
+          },
+          "pinNumber": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "number",
+          "pinNumber"
+        ]
+      },
+      "CreateCardDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateUserCardDTO"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "cards"
+        ]
+      },
+      "CreateCardResult": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "number"
+          },
+          "cardNumber": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cardId",
+          "cardNumber"
+        ]
+      },
+      "CreateCardResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCardResult"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "DeleteCardDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number"
+          },
+          "cardIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "cardIds"
+        ]
+      },
+      "VisitorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "userPhoto": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastVisit": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true
+          },
+          "blacklisted": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "remarks": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "VisitorArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisitorDto"
+            }
+          },
+          "cursor": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "VisitorRegistrationsVisitorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "userPhoto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "VisitorRegistrationLiftGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ]
+      },
+      "VisitorRegistrationSiteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ]
+      },
+      "VisitorRegistrationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "visitStart": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T08:53:58+08:00"
+          },
+          "visitEnd": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T09:53:58+08:00"
+          },
+          "credentialNumber": {
+            "type": "number"
+          },
+          "vehicleNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "visitor": {
+            "$ref": "#/components/schemas/VisitorRegistrationsVisitorDto"
+          },
+          "liftGroup": {
+            "$ref": "#/components/schemas/VisitorRegistrationLiftGroupDto"
+          },
+          "site": {
+            "$ref": "#/components/schemas/VisitorRegistrationSiteDto"
+          }
+        },
+        "required": [
+          "id",
+          "visitStart",
+          "visitEnd",
+          "credentialNumber",
+          "visitor",
+          "liftGroup",
+          "site"
+        ]
+      },
+      "VisitorRegistrationArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisitorRegistrationDto"
+            }
+          },
+          "cursor": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "VisitorWeeklyScheduleDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "number"
+        ]
+      },
+      "VisitorAllDoorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "doorNumber": {
+            "type": "number"
+          },
+          "siteId": {
+            "type": "number"
+          },
+          "controllerId": {
+            "type": "number"
+          },
+          "weeklySchedule": {
+            "$ref": "#/components/schemas/VisitorWeeklyScheduleDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "doorNumber",
+          "siteId",
+          "controllerId",
+          "weeklySchedule"
+        ]
+      },
+      "VisitorAllDoorArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisitorAllDoorDto"
+            }
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "VisitorResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VisitorDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "CreateVisitorDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Person"
+          },
+          "credentialNumber": {
+            "type": "number",
+            "example": 1253646425
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "example": "person@email.com"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "9483014014103"
+          },
+          "userPhoto": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://examplesite.com/image.png"
+          },
+          "vehicleNumber": {
+            "type": "string",
+            "nullable": true,
+            "example": "123214"
+          },
+          "visitStart": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T08:53:58+08:00"
+          },
+          "visitEnd": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T09:53:58+08:00"
+          },
+          "siteId": {
+            "type": "number",
+            "example": 10
+          },
+          "liftGroupId": {
+            "type": "number",
+            "example": 10
+          },
+          "allowedDoorIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "credentialNumber",
+          "visitStart",
+          "visitEnd",
+          "siteId",
+          "liftGroupId",
+          "allowedDoorIds"
+        ]
+      },
+      "CreateVisitorResult": {
+        "type": "object",
+        "properties": {
+          "visitorId": {
+            "type": "number"
+          },
+          "visitorRegistrationId": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "visitorId",
+          "visitorRegistrationId"
+        ]
+      },
+      "CreateVisitorResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreateVisitorResult"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "AddRepeatVisitorDto": {
+        "type": "object",
+        "properties": {
+          "visitorId": {
+            "type": "number"
+          },
+          "credentialNumber": {
+            "type": "number",
+            "example": 1253646425
+          },
+          "vehicleNumber": {
+            "type": "string",
+            "nullable": true,
+            "example": "123214"
+          },
+          "visitStart": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T08:53:58+08:00"
+          },
+          "visitEnd": {
+            "format": "date-time",
+            "type": "string",
+            "description": "ISO 8601 with timezone format",
+            "example": "2025-01-06T09:53:58+08:00"
+          },
+          "siteId": {
+            "type": "number",
+            "example": 10
+          },
+          "liftGroupId": {
+            "type": "number",
+            "example": 10
+          },
+          "allowedDoorIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "visitorId",
+          "credentialNumber",
+          "visitStart",
+          "visitEnd",
+          "siteId",
+          "liftGroupId",
+          "allowedDoorIds"
+        ]
+      },
+      "UpdateVisitorRegistrationResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "UpdateVisitorRegistrationResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateVisitorRegistrationResult"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      },
+      "CreateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "enable": {
+            "type": "boolean"
+          },
+          "webhookLink": {
+            "type": "string"
+          },
+          "webhookLink2": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "enable",
+          "webhookLink"
+        ]
+      },
+      "WebhookDto": {
+        "type": "object",
+        "properties": {
+          "ownerId": {
+            "type": "number"
+          },
+          "enable": {
+            "type": "boolean"
+          },
+          "webhookLink": {
+            "type": "string"
+          },
+          "webhookLink2": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ownerId",
+          "enable",
+          "webhookLink"
+        ]
+      },
+      "WebhookResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "number"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WebhookDto"
+          }
+        },
+        "required": [
+          "error",
+          "message",
+          "data"
+        ]
+      }
+    }
+  }
+}
