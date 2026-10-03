@@ -5,6 +5,9 @@
 logs/
 *.log
 
+# Generated QR code images
+data/qr-codes/*.png
+
 # BlueJ files
 *.ctxt
 

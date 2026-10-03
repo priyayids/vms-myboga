@@ -44,13 +44,13 @@ public class VisitorRegistrationRequest {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ssXXX")
     private OffsetDateTime visitEnd;
 
-    @NotNull(message = "siteId is required")
+    @NotNull(message = "roomId is required")
+    private Long roomId;
+
     private Long siteId;
 
-    @NotNull(message = "liftGroupId is required")
     private Long liftGroupId;
 
-    @NotEmpty(message = "allowedDoorIds cannot be empty")
     private List<Long> allowedDoorIds;
 
     @NotBlank(message = "cardNumber is required")

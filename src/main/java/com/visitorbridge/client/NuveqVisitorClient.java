@@ -8,13 +8,14 @@ import com.visitorbridge.service.TransactionLogger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.util.List;
 
 @Slf4j
@@ -29,8 +30,12 @@ public class NuveqVisitorClient {
         this.properties = properties;
         this.transactionLogger = transactionLogger;
 
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.getConnectTimeout());
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(properties.getConnectTimeout())
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(properties.getReadTimeout());
 
         this.restClient = RestClient.builder()
@@ -117,6 +122,41 @@ public class NuveqVisitorClient {
         } catch (Exception ex) {
             log.error("Failed to poll events from Nuveq for date {}: {}", date, ex.getMessage());
             return List.of();
+        }
+    }
+
+    public List<NuveqDoorDto> fetchDoors() {
+        try {
+            NuveqDoorsResponse response = restClient.get()
+                    .uri("/api/visitors/doors")
+                    .retrieve()
+                    .body(NuveqDoorsResponse.class);
+
+            return (response != null && response.getData() != null) ? response.getData() : List.of();
+        } catch (Exception ex) {
+            log.error("Failed to fetch doors from Nuveq: {}", ex.getMessage(), ex);
+            throw new NuveqServerException("Failed to fetch doors from Nuveq: " + ex.getMessage(), ex);
+        }
+    }
+
+    public void deleteVisitorRegistration(Long registrationId) {
+        try {
+            restClient.delete()
+                    .uri("/api/visitors/registrations/{id}", registrationId)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("Deleted Nuveq visitor registration: {}", registrationId);
+        } catch (HttpClientErrorException ex) {
+            if (ex.getStatusCode().is4xxClientError()) {
+                transactionLogger.logTransaction("NuveqVisitorClient", String.valueOf(registrationId),
+                        "NUVEQ_DELETE_VISITOR", "FAILED_4XX", "status=" + ex.getStatusCode().value());
+                log.warn("Nuveq delete visitor registration {} returned 4xx: {}", registrationId, ex.getMessage());
+            } else {
+                throw ex;
+            }
+        } catch (Exception ex) {
+            log.error("Failed to delete Nuveq visitor registration {}: {}", registrationId, ex.getMessage(), ex);
+            throw new NuveqServerException("Failed to delete Nuveq visitor registration: " + ex.getMessage(), ex);
         }
     }
 }

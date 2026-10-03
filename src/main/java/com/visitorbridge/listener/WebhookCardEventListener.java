@@ -1,7 +1,7 @@
 package com.visitorbridge.listener;
 
 import com.visitorbridge.client.NuveqEventDto;
-import com.visitorbridge.service.VisitorService;
+import com.visitorbridge.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class WebhookCardEventListener implements CardEventListener {
 
-    private final VisitorService visitorService;
+    private final BookingService bookingService;
 
     @Override
     public void onCardEvent(NuveqEventDto event) {
@@ -32,7 +32,6 @@ public class WebhookCardEventListener implements CardEventListener {
             return;
         }
 
-        String direction = event.getDirection();
-        visitorService.processCardEvent(cardNumber, direction);
+        bookingService.processCardEvent(cardNumber, event.getDirection());
     }
 }

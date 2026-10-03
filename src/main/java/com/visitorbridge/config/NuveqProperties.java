@@ -32,5 +32,7 @@ public class NuveqProperties {
     public static class EventListenerConfig {
         private String mode = "webhook";
         private long pollingIntervalMs = 10000;
+        /** Upper bound on remembered event ids, so a long-running poller cannot leak. */
+        private int processedEventsCapacity = 5000;
     }
 }

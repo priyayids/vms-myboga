@@ -47,6 +47,8 @@
         <appender-ref ref="TRANSACTIONS_FILE" />
     </logger>
 
+    <logger name="com.visitorbridge" level="DEBUG" />
+
     <root level="INFO">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="APPLICATION_FILE" />

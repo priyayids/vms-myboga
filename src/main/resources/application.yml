@@ -33,8 +33,27 @@ nuveq:
   max-retries: 3
   backoff-delay-ms: 500
   event-listener:
-    mode: webhook # webhook or polling
-    polling-interval-ms: 10000
+    # webhook = Nuveq POSTs to us (needs a publicly reachable URL, so it only works
+    # once the service is deployed behind a domain). polling = we pull GET /api/events,
+    # which is the only option for localhost/demo-device testing.
+    mode: ${NUVEQ_EVENT_MODE:webhook} # webhook or polling
+    polling-interval-ms: ${NUVEQ_POLL_INTERVAL_MS:10000}
+    # Cap on remembered event ids; bounds memory on a long-running instance.
+    processed-events-capacity: ${NUVEQ_PROCESSED_EVENTS_CAPACITY:5000}
+
+vms:
+  booking:
+    expiry-minutes: 15
+    operating-hours-start: 9
+    operating-hours-end: 22
+    timezone: Asia/Jakarta
+  qr:
+    # Resolved against the application working directory (the project root under
+    # `mvn spring-boot:run`). Override with QR_STORAGE_PATH to point elsewhere.
+    # Deliberately NOT under src/main/resources: Maven would package generated
+    # images into the jar, and runtime writes would pollute the source tree.
+    storage-path: ${QR_STORAGE_PATH:./data/qr-codes}
+    base-serve-url: ${APP_BASE_URL:http://localhost:8080}
 
 management:
   endpoints:

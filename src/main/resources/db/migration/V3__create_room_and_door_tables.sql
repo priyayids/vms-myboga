@@ -1,0 +1,27 @@
+CREATE TABLE IF NOT EXISTS room (
+    id BIGSERIAL PRIMARY KEY,
+    custom_name VARCHAR(255) NOT NULL DEFAULT 'not mapped',
+    site_id BIGINT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS door (
+    id BIGSERIAL PRIMARY KEY,
+    nuveq_door_id BIGINT NOT NULL UNIQUE,
+    door_name VARCHAR(255) NOT NULL,
+    door_number INTEGER,
+    controller_id BIGINT,
+    site_id BIGINT,
+    room_id BIGINT REFERENCES room(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_door_nuveq_door_id ON door (nuveq_door_id);
+CREATE INDEX IF NOT EXISTS idx_door_room_id ON door (room_id);
+
+ALTER TABLE visitor
+    ADD COLUMN IF NOT EXISTS room_id BIGINT REFERENCES room(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_visitor_room_id ON visitor (room_id);

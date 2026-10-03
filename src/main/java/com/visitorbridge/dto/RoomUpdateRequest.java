@@ -6,14 +6,20 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReservationResponseDto {
-    private String registrationId;
-    private boolean idempotent;
-    private VisitorResponseDto checkIn;
-    private VisitorResponseDto checkOut;
+public class RoomUpdateRequest {
+
+    private String customName;
+
+    private Long siteId;
+
+    private Long liftGroupId;
+
+    private List<Long> doorNuveqIds;
 }

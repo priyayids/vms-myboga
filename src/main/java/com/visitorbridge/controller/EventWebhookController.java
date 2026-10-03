@@ -7,7 +7,7 @@ import com.visitorbridge.client.NuveqEventDto;
 import com.visitorbridge.dto.ApiResponse;
 import com.visitorbridge.dto.WebhookProcessingResult;
 import com.visitorbridge.model.WebhookEventLog;
-import com.visitorbridge.service.VisitorService;
+import com.visitorbridge.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +27,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EventWebhookController {
 
-    private final VisitorService visitorService;
+    private final BookingService bookingService;
     private final ObjectMapper objectMapper;
 
     @PostMapping("/nuveq-webhook")
@@ -41,18 +41,18 @@ public class EventWebhookController {
             if (payload.isArray()) {
                 List<NuveqEventDto> events = objectMapper.convertValue(payload, new TypeReference<List<NuveqEventDto>>() {});
                 for (NuveqEventDto event : events) {
-                    WebhookProcessingResult res = visitorService.processCardEvent(event, rawJson);
+                    WebhookProcessingResult res = bookingService.processCardEvent(event, rawJson);
                     if (res != null) results.add(res);
                 }
             } else if (payload.has("data") && payload.get("data").isArray()) {
                 List<NuveqEventDto> events = objectMapper.convertValue(payload.get("data"), new TypeReference<List<NuveqEventDto>>() {});
                 for (NuveqEventDto event : events) {
-                    WebhookProcessingResult res = visitorService.processCardEvent(event, rawJson);
+                    WebhookProcessingResult res = bookingService.processCardEvent(event, rawJson);
                     if (res != null) results.add(res);
                 }
             } else {
                 NuveqEventDto singleEvent = objectMapper.convertValue(payload, NuveqEventDto.class);
-                WebhookProcessingResult res = visitorService.processCardEvent(singleEvent, rawJson);
+                WebhookProcessingResult res = bookingService.processCardEvent(singleEvent, rawJson);
                 if (res != null) results.add(res);
             }
         } catch (Exception e) {
@@ -76,7 +76,7 @@ public class EventWebhookController {
 
     @GetMapping("/logs")
     public ResponseEntity<ApiResponse<List<WebhookEventLog>>> getRecentWebhookLogs() {
-        List<WebhookEventLog> logs = visitorService.getRecentWebhookLogs();
+        List<WebhookEventLog> logs = bookingService.getRecentWebhookLogs();
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 }
