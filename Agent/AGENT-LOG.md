@@ -6,6 +6,83 @@ All AI-related notes, decisions, and session logs are kept in this `/Agent` fold
 
 ---
 
+## 2026-10-04 — Production Deploy to `api.app-cube.tech` (Docker + DB + GitHub CI/CD)
+
+### Goal
+Ship the service to the VPS behind `https://api.app-cube.tech` on a Docker
+network with its own PostgreSQL, and make every subsequent deploy a `git push`.
+Nothing already running on that host may change.
+
+### Decisions Made
+
+| Decision | Rationale |
+|----------|-----------|
+| `vms-db` publishes **no** host port | The host already runs native PostgreSQL on `127.0.0.1:5432` (`16-main`) and `:5433` (`16-hive`). Not publishing also keeps Postgres off the internet entirely |
+| `vms-myboga-app` binds `127.0.0.1:8080` | UFW policy is `DROP` with only 22/80/443/2222 open, so nginx on 443 is the only way in. Port 8080 was verified free |
+| Own `vms_net` network + `vms_pgdata` volume | Avoids collision with `bookspace_net`, `bookspace_pgdata` and the other four stacks |
+| Let's Encrypt **DNS-01**, `certbot certonly` | Writes no nginx config at all. The other six subdomains use HTTP-01, but DNS-01 leaves the shared nginx untouched and works behind Cloudflare's orange cloud |
+| nginx change is **one new file**, `nginx -t` gates `reload` | No existing vhost edited. `reload` rather than `restart`, so in-flight connections on the other five sites survive |
+| Build on **GitHub runners**, not the VPS | 2 vCPU box already serving nine containers; a Maven + Docker build there would compete with production. Deploy on the VPS is only `pull` + `up -d` |
+| Deploy as a **dedicated key + `deploy` user**, not root | The key is generated for CI only and carries `restrict` in `authorized_keys`. The `deploy` user already existed and is in the `docker` group |
+| VPS host **public** keys committed in the workflow | They are public data; pinning them is what stops a DNS hijack from redirecting the deploy. Using `StrictHostKeyChecking=no` instead would throw that away |
+| `migration-smoke` CI job | The unit suite runs H2 with `flyway.enabled: false`, so **nothing else** proved V1-V7 apply on PostgreSQL or that Hibernate `ddl-auto: validate` agrees |
+| `json-file` logs capped 10 MB x 3 | One chatty service must not be able to fill the shared disk |
+
+### The DNS trap — the one bug that would have shipped
+
+Both the dev machine and the VPS use `systemd-resolved` with its stub on
+`127.0.0.53`, which is unreachable from inside Docker's embedded resolver at
+`127.0.0.11`. glibc clients cope and `curl` from inside the container returns
+200, but **the JVM does not** — every Nuveq call died with:
+
+```
+I/O error on GET request for ".../api/visitors/doors": null
+Caused by: java.nio.channels.UnresolvedAddressException: null
+```
+
+The failure is invisible from outside: the healthcheck passes,
+`/actuator/health` says `UP`, and the only symptoms are an empty doors list and
+the poller logging the same error every ten seconds. Fixed with a per-container
+`dns:` entry rather than a daemon-wide change, because the daemon default would
+have altered name resolution for all nine existing containers.
+
+### Verification performed
+
+Local stack against real PostgreSQL 16 and the real Nuveq API: Flyway V1-V7 all
+`success`, 6 doors synced, `POST /api/visitors/registration` -> **201** with a
+genuine Nuveq booking, repeat with the same `registrationId` -> **200
+idempotent**, both QR codes served as valid PNGs, webhook matched the booking
+and flipped it active, availability endpoint OK, `DELETE` released the
+credential. Test booking cancelled afterwards.
+
+### Notes for whoever picks this up
+
+- `allowedDoorIds` in a registration request are **Nuveq door ids**, not the
+  internal `door.id`. Sending the internal id gets `400 Doors not found` from
+  Nuveq. Omit the field and the service derives them from the room.
+- `GET /api/rooms/{id}/availability` requires a `date` query parameter. Without
+  it the app answers **500** rather than 400 — `GlobalExceptionHandler` does not
+  handle `MissingServletRequestParameterException`. Pre-existing, left alone
+  here.
+- Full runbook, including the host inventory and the non-regression check, is in
+  `notes/deployment.md`.
+
+### Files Touched
+- New: `docker-compose.prod.yml`, `.dockerignore`, `.env.example`,
+  `.github/workflows/ci-cd.yml`, `deploy/deploy.sh`, `deploy/bootstrap.sh`,
+  `notes/deployment.md`
+- Changed: `Dockerfile` (non-root uid 10001, curl, HEALTHCHECK, JVM flags),
+  `docker-compose.yml` (loopback ports + DNS), `README.md` (deploy section),
+  `deploy/deploy.sh`
+- Committed the previously untracked Flyway **V7** — without it any environment
+  bootstrapped from this branch fails Hibernate schema validation
+- VPS (outside the repo): Cloudflare `A api.app-cube.tech`, LE cert via DNS-01,
+  `sites-available/api.app-cube.tech`, `/srv/vms-myboga`, `/root/.secrets/cf-dns.ini`,
+  `/root/nginx-backup-20261004-0855.tgz`, deploy key in
+  `/home/deploy/.ssh/authorized_keys`
+
+---
+
 ## 2026-10-04 — API Version Removal, Reserve Rename & Per-Room Expiry
 
 ### Goal

@@ -25,9 +25,21 @@ fi
 chmod 600 .env
 
 # The image runs as uid/gid 10001. These are bind mounts, so Docker does not
-# create them with the right ownership for us.
+# create them with the right ownership for us. Only root can chown, and CI
+# deploys as the unprivileged `deploy` user, so bootstrap.sh does this once as
+# root and here we only verify.
 mkdir -p logs data/qr-codes
-chown -R 10001:10001 logs data/qr-codes
+if [[ $EUID -eq 0 ]]; then
+  chown -R 10001:10001 logs data/qr-codes
+else
+  for d in logs data/qr-codes; do
+    owner="$(stat -c '%u:%g' "$d")"
+    if [[ "$owner" != "10001:10001" ]]; then
+      echo "WARN: $d is owned by $owner, expected 10001:10001." >&2
+      echo "      Run as root once: chown -R 10001:10001 $APP_DIR/logs $APP_DIR/data/qr-codes" >&2
+    fi
+  done
+fi
 
 # Refresh the compose files themselves so compose-file changes in a commit
 # reach the host too. Best effort: the deploy must not depend on git working
