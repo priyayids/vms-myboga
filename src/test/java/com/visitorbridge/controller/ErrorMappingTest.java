@@ -53,6 +53,21 @@ class ErrorMappingTest {
     }
 
     @Test
+    @DisplayName("GET / reports real configuration, not 'unknown'")
+    void testRootReportsConfiguredValues() throws Exception {
+        // Guards a real slip: reading these via @Value with a hand-written key
+        // silently rendered "unknown" because there is no vms.base-url. The
+        // controller now reads the bound VmsProperties/NuveqProperties beans,
+        // whose Java defaults always apply.
+        mockMvc.perform(get("/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.apiBaseUrl").value("http://localhost:8080"))
+                .andExpect(jsonPath("$.data.nuveqBaseUrl").value("http://localhost:9999"))
+                .andExpect(jsonPath("$.data.cardEventMode").value("webhook"))
+                .andExpect(jsonPath("$.data.operatingHours").value("9-22 Asia/Jakarta"));
+    }
+
+    @Test
     @DisplayName("Unknown path returns 404, not 500")
     void testUnknownPathIsNotFound() throws Exception {
         mockMvc.perform(get("/no/such/endpoint"))

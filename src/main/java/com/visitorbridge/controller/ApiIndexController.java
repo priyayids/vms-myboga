@@ -1,8 +1,10 @@
 package com.visitorbridge.controller;
 
+import com.visitorbridge.config.NuveqProperties;
+import com.visitorbridge.config.VmsProperties;
 import com.visitorbridge.dto.ApiResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,9 +24,10 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 public class ApiIndexController {
 
-    private static final String[] ENDPOINTS = {
+    private static final List<String> ENDPOINTS = List.of(
             "GET  /actuator/health",
             "GET  /actuator/metrics",
             "POST /api/visitors/registration",
@@ -40,31 +43,29 @@ public class ApiIndexController {
             "DELETE /api/bookings/{registrationId}",
             "GET  /api/bookings/{registrationId}/qr/{in|out}",
             "POST /api/events/nuveq-webhook",
-            "GET  /api/events/logs",
-    };
+            "GET  /api/events/logs"
+    );
 
-    private final String vmsBaseUrl;
-    private final String nuveqBaseUrl;
-    private final String eventMode;
-
-    public ApiIndexController(
-            @Value("${vms.base-url:unknown}") String vmsBaseUrl,
-            @Value("${nuveq.base-url:unknown}") String nuveqBaseUrl,
-            @Value("${nuveq.event-listener.mode:unknown}") String eventMode) {
-        this.vmsBaseUrl = vmsBaseUrl;
-        this.nuveqBaseUrl = nuveqBaseUrl;
-        this.eventMode = eventMode;
-    }
+    // The already-bound configuration beans, not @Value. Reading the values
+    // through the same objects the rest of the app uses means a renamed
+    // property cannot leave this endpoint quietly reporting "unknown" - and
+    // the defaults declared on VmsProperties/NuveqProperties always apply.
+    private final VmsProperties vmsProperties;
+    private final NuveqProperties nuveqProperties;
 
     @GetMapping({"/", ""})
     public ApiResponse<Map<String, Object>> index() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("service", "Visitor Middleware Service");
         data.put("status", "up");
-        data.put("apiBaseUrl", vmsBaseUrl);
-        data.put("nuveqBaseUrl", nuveqBaseUrl);
-        data.put("cardEventMode", eventMode);
-        data.put("endpoints", List.of(ENDPOINTS));
+        data.put("apiBaseUrl", vmsProperties.getQr().getBaseServeUrl());
+        data.put("qrStoragePath", vmsProperties.getQr().getStoragePath());
+        data.put("nuveqBaseUrl", nuveqProperties.getBaseUrl());
+        data.put("cardEventMode", nuveqProperties.getEventListener().getMode());
+        data.put("operatingHours", vmsProperties.getBooking().getOperatingHoursStart()
+                + "-" + vmsProperties.getBooking().getOperatingHoursEnd()
+                + " " + vmsProperties.getBooking().getTimezone());
+        data.put("endpoints", ENDPOINTS);
         return ApiResponse.success(data);
     }
 }
