@@ -6,6 +6,56 @@ All AI-related notes, decisions, and session logs are kept in this `/Agent` fold
 
 ---
 
+## 2026-10-04 — Unmapped Paths Returned 500, Not 404
+
+### Goal
+Reported symptom: browsing to `https://api.app-cube.tech/` returned
+`500 "An unexpected internal error occurred"`. Then: list every endpoint and
+verify each one works.
+
+### Root cause
+Nothing was wrong with the deployment. No controller maps `/`, so Spring
+throws `NoResourceFoundException`, and the catch-all
+`@ExceptionHandler(Exception.class)` in `GlobalExceptionHandler` claimed it.
+Same for `MissingServletRequestParameterException`, so
+`GET /api/rooms/{id}/availability` without `?date` was also a 500.
+
+The endpoint sweep found this. The unit suite never touched either path, and
+`curl`-ing `/` had not been part of the original verification — that was the
+gap.
+
+### Changes
+
+| Change | Why |
+|---|---|
+| Handle `NoResourceFoundException` as 404 | A mistyped URL is a caller error, not a server fault |
+| Handle `MissingServletRequestParameterException`, `MethodArgumentTypeMismatchException`, `HttpMessageNotReadableException` as 400 | Same reasoning for malformed requests |
+| New `GET /` returning a small index | The bare host name should be useful, not merely non-broken |
+| `ErrorMappingTest` — 6 cases | Stops this regressing silently. 53 → 59 tests |
+
+### Second bug found while testing the first fix
+The index initially reported `apiBaseUrl: "unknown"` because it read the value
+with `@Value("${vms.base-url}")` — a property that does not exist. A wrong
+`@Value` key falls back to the default instead of failing, so it was invisible.
+Rewritten to inject the already-bound `VmsProperties` / `NuveqProperties` beans
+that the services use, which makes the declared Java defaults authoritative and
+removes the whole class of silent-key mistakes. The test asserting the literal
+configured values is what caught it.
+
+### Verification
+Full sweep of all 16 endpoints plus actuator against production:
+**26/26**. Registration 201 → repeat 200 idempotent → invalid body 400;
+QR in/out served as valid PNGs; webhook matched; unknown booking 404;
+double-cancel 409; unknown path 404; root 200 with live config.
+CI/CD green on the deploy. All 9 pre-existing hostnames still 200.
+
+### Note for the sweep script
+A reusable sweep must generate a unique `registrationId` per run. Reusing one
+makes the second run assert the *idempotent* path, and the QR assertions then
+fail legitimately — the QR was deleted when the first run cancelled the booking.
+
+---
+
 ## 2026-10-04 — Production Deploy to `api.app-cube.tech` (Docker + DB + GitHub CI/CD)
 
 ### Goal
