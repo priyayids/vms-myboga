@@ -179,6 +179,12 @@ public data, and pinning them is precisely what stops a DNS hijack from
 pointing the deploy at an attacker's host. Do not replace this with
 `StrictHostKeyChecking=no`.
 
+The deploy private key's only copy lives in the `VPS_SSH_PRIVATE_KEY` Actions
+secret; it is deliberately **not** kept on any machine's disk. Regenerate by
+generating a keypair, appending the public half to
+`/home/deploy/.ssh/authorized_keys`, and re-uploading the private half to the
+secret.
+
 ### SSH access notes
 
 Locally the key is `~/.ssh/id_rsa` (ED25519 despite the name) and **is
