@@ -21,6 +21,29 @@ if [[ ! -f ".env" ]]; then
   exit 1
 fi
 
+# Update this checkout first, then re-exec, so the rest of the run uses the
+# compose files and the deploy script from the commit being deployed.
+#
+# Without the re-exec, a bug fixed in deploy.sh would only be fixed on the
+# *second* deploy: this script would keep running from the previous checkout
+# until something else pulled. That is exactly what happened when the first
+# CI deploy ran - it used the old script and failed on a chown it had already
+# been changed to skip.
+#
+# The pull is best effort on purpose: the deploy must still work if git is
+# broken or the repo later becomes private.
+if [[ "${VMS_DEPLOY_REEXEC:-0}" != "1" ]]; then
+  export VMS_DEPLOY_REEXEC=1
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    if git pull --ff-only --quiet origin "${DEPLOY_BRANCH:-main}"; then
+      echo "checkout updated to $(git rev-parse --short HEAD)"
+    else
+      echo "WARN: git pull failed, continuing with the files already on disk" >&2
+    fi
+  fi
+  exec bash "$0" "$@"
+fi
+
 # .env holds the DB password and the Nuveq API key.
 chmod 600 .env
 
@@ -39,17 +62,6 @@ else
       echo "      Run as root once: chown -R 10001:10001 $APP_DIR/logs $APP_DIR/data/qr-codes" >&2
     fi
   done
-fi
-
-# Refresh the compose files themselves so compose-file changes in a commit
-# reach the host too. Best effort: the deploy must not depend on git working
-# (a private repo or an expired token should still allow an image deploy).
-if git rev-parse --git-dir >/dev/null 2>&1; then
-  if git pull --ff-only --quiet origin "${DEPLOY_BRANCH:-main}"; then
-    echo "compose files updated to $(git rev-parse --short HEAD)"
-  else
-    echo "WARN: git pull failed, continuing with the compose files already on disk" >&2
-  fi
 fi
 
 echo "--- rolling update ---"
