@@ -23,7 +23,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/events")
+@RequestMapping("/api/events")
 @RequiredArgsConstructor
 public class EventWebhookController {
 

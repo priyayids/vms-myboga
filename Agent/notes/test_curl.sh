@@ -7,7 +7,7 @@ curl -s -f "$BASE_URL/actuator/health" | jq . || curl -s "$BASE_URL/actuator/hea
 echo ""
 
 echo "=== 2. Creating New Visitor Reservation ==="
-RES=$(curl -s -X POST "$BASE_URL/api/v1/visitors/reserve" \
+RES=$(curl -s -X POST "$BASE_URL/api/visitors/registration" \
   -H "Content-Type: application/json" \
   -d '{
     "registrationId": "TEST-REG-20261002-01",
@@ -27,7 +27,7 @@ echo "$RES" | jq . || echo "$RES"
 echo ""
 
 echo "=== 3. Testing Idempotency (Resubmission of TEST-REG-20261002-01) ==="
-RES2=$(curl -s -X POST "$BASE_URL/api/v1/visitors/reserve" \
+RES2=$(curl -s -X POST "$BASE_URL/api/visitors/registration" \
   -H "Content-Type: application/json" \
   -d '{
     "registrationId": "TEST-REG-20261002-01",
@@ -45,7 +45,7 @@ echo "$RES2" | jq . || echo "$RES2"
 echo ""
 
 echo "=== 4. Simulating Nuveq Card Swipe Event (IN) ==="
-EVENT_RES=$(curl -s -X POST "$BASE_URL/api/v1/events/nuveq-webhook" \
+EVENT_RES=$(curl -s -X POST "$BASE_URL/api/events/nuveq-webhook" \
   -H "Content-Type: application/json" \
   -d '{
     "id": 5001,
@@ -57,7 +57,7 @@ echo "$EVENT_RES" | jq . || echo "$EVENT_RES"
 echo ""
 
 echo "=== 5. Checking Visitor State in Database ==="
-curl -s "$BASE_URL/api/v1/visitors/registration/TEST-REG-20261002-01" | jq . || curl -s "$BASE_URL/api/v1/visitors/registration/TEST-REG-20261002-01"
+curl -s "$BASE_URL/api/visitors/registration/TEST-REG-20261002-01" | jq . || curl -s "$BASE_URL/api/visitors/registration/TEST-REG-20261002-01"
 echo ""
 
 echo "=== 6. Checking Transaction Logs ==="

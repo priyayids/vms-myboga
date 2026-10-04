@@ -117,7 +117,7 @@ Links rooms to Nuveq physical doors.
 ### Slot Availability Query Logic
 When a user selects a room + date, the UI calls:
 ```
-GET /api/v1/rooms/{roomId}/availability?date=2026-10-03
+GET /api/rooms/{roomId}/availability?date=2026-10-03
 ```
 Backend returns an array of 13 hour slots (9–22) with availability status:
 ```json
@@ -144,31 +144,31 @@ The UI disables unavailable hour buttons and shows a tooltip: *"Already booked"*
 ### Booking Flow
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/api/v1/visitors/reserve` | Create time-slot booking + push 2 visitors to Nuveq |
-| `GET` | `/api/v1/rooms` | List all rooms (no real-time status — use availability endpoint) |
-| `GET` | `/api/v1/rooms/{id}` | Get single room |
-| `GET` | `/api/v1/rooms/{roomId}/availability?date=YYYY-MM-DD` | **NEW** — Get hourly slot availability for a date |
-| `POST` | `/api/v1/events/nuveq-webhook` | Receive Nuveq card swipe events |
+| `POST` | `/api/visitors/registration` | Create time-slot booking + push 2 visitors to Nuveq |
+| `GET` | `/api/rooms` | List all rooms (no real-time status — use availability endpoint) |
+| `GET` | `/api/rooms/{id}` | Get single room |
+| `GET` | `/api/rooms/{roomId}/availability?date=YYYY-MM-DD` | **NEW** — Get hourly slot availability for a date |
+| `POST` | `/api/events/nuveq-webhook` | Receive Nuveq card swipe events |
 
 ### Room Master Admin
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/rooms` | List rooms with doors |
-| `POST` | `/api/v1/rooms` | Create room |
-| `PUT` | `/api/v1/rooms/{id}` | Update room |
-| `DELETE` | `/api/v1/rooms/{id}` | Delete room |
-| `GET` | `/api/v1/rooms/doors` | List all Nuveq doors with mapping |
-| `POST` | `/api/v1/rooms/sync` | Sync doors from Nuveq |
+| `GET` | `/api/rooms` | List rooms with doors |
+| `POST` | `/api/rooms` | Create room |
+| `PUT` | `/api/rooms/{id}` | Update room |
+| `DELETE` | `/api/rooms/{id}` | Delete room |
+| `GET` | `/api/rooms/doors` | List all Nuveq doors with mapping |
+| `POST` | `/api/rooms/sync` | Sync doors from Nuveq |
 
 ---
 
 ## Full Booking Flow (Sequence)
 
 1. User opens booking form → selects **room** → selects **date**
-2. UI calls `GET /api/v1/rooms/{roomId}/availability?date=...`
+2. UI calls `GET /api/rooms/{roomId}/availability?date=...`
 3. UI renders hour picker: disabled hours show as booked
 4. User picks available start/end hour, fills personal info + 2 card numbers
-5. UI submits `POST /api/v1/visitors/reserve`
+5. UI submits `POST /api/visitors/registration`
 6. Middleware validates:
    - Required fields
    - `visitStart` / `visitEnd` within 09:00–22:00
@@ -197,7 +197,7 @@ The UI disables unavailable hour buttons and shows a tooltip: *"Already booked"*
 
 ## Webhook Event Flow (Nuveq → Middleware)
 
-Nuveq pushes card events to: `POST /api/v1/events/nuveq-webhook`
+Nuveq pushes card events to: `POST /api/events/nuveq-webhook`
 
 Event fields: `cardNo`, `direction` (IN/OUT), `doorId`, `timestamp`
 
@@ -268,8 +268,8 @@ DB column (relative):         qr_code_path_in  = "qr-codes/REG-..._in.png"
 
 ### Served Via
 ```
-GET /api/v1/bookings/{registrationId}/qr/in    → image/png
-GET /api/v1/bookings/{registrationId}/qr/out   → image/png
+GET /api/bookings/{registrationId}/qr/in    → image/png
+GET /api/bookings/{registrationId}/qr/out   → image/png
 ```
 The response DTO includes `qrCodeUrlIn` and `qrCodeUrlOut` pointing to these endpoints.
 

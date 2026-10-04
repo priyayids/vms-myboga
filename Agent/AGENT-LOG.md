@@ -6,6 +6,34 @@ All AI-related notes, decisions, and session logs are kept in this `/Agent` fold
 
 ---
 
+## 2026-10-04 — API Version Removal, Reserve Rename & Per-Room Expiry
+
+### Goal
+Drop the `/api/v1` version prefix, rename the reservation endpoint to
+`/registration`, and make the no-show expiry window configurable per room
+(master data) instead of a single global constant.
+
+### Decisions Made
+
+| Decision | Rationale |
+|----------|-----------|
+| All endpoints now live under `/api/...` (no version segment) | Simplifies the contract; supersedes the 2026-10-03 "keep reserve on `/api/v1/visitors/reserve`" decision — explicitly requested by the operator |
+| `POST /api/visitors/registration` (was `/reserve`) | Matches the domain language used by the UI ("Registration"); `vms-form` `reserveEndpoint` config updated to match |
+| `room.expire_minutes` (default 15, migration V7) | Expiry is room-specific master data, not a global constant; falls back to `vms.booking.expiry-minutes` for legacy rows with null |
+| Expiry deadline = `visitStart + room.expireMinutes` | Grace window counted from booking start; no IN event by the deadline → auto check-out (EXPIRED), Nuveq registrations + QR released, slot bookable again |
+| `vms-form` room modal gains an "Expire (menit)" field | UI must stay in sync with the new room field; table shows the value per room |
+
+> **Note:** earlier session entries below still mention `/api/v1/...` paths and `POST /reserve`. Those were the correct paths at the time they were written; every one of them is superseded by the unmangled `/api/...` paths in this entry.
+
+### Files Touched
+- Backend: all 4 controllers, `QrCodeService.buildServeUrl`, `Room` entity + V7
+  migration, `RoomCreate/UpdateRequest`, `RoomResponseDto`, `RoomService`,
+  `BookingService.expirePendingBookings`, tests, `README.md`
+- Frontend (`../vms-form`): `js/config.js`, `js/api.js`, `js/room-master.js`,
+  `server.js` (mock), `index.html` (modal + table + hints), `README.md`
+
+---
+
 ## 2026-10-03 — Implementation Session #1 (Backend Build: Bookings + QR + Expiry)
 
 ### Goal

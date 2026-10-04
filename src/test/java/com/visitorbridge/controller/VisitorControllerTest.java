@@ -65,7 +65,7 @@ class VisitorControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/visitors/reserve - 201 Created for new registration")
+    @DisplayName("POST /api/visitors/registration - 201 Created for new registration")
     void testReserveNewBookingSuccess() throws Exception {
         BookingResponseDto mockResponse = BookingResponseDto.builder()
                 .registrationId("REG-100")
@@ -77,13 +77,13 @@ class VisitorControllerTest {
                 .cardNumberOut("****7891")
                 .allowedDoors(List.of("Demo Door 1", "5601 Door1"))
                 .bookingStatus(BookingStatus.PENDING)
-                .qrCodeUrlIn("http://localhost:8080/api/v1/bookings/REG-100/qr/in")
-                .qrCodeUrlOut("http://localhost:8080/api/v1/bookings/REG-100/qr/out")
+                .qrCodeUrlIn("http://localhost:8080/api/bookings/REG-100/qr/in")
+                .qrCodeUrlOut("http://localhost:8080/api/bookings/REG-100/qr/out")
                 .build();
 
         when(bookingService.reserveBooking(any(VisitorRegistrationRequest.class))).thenReturn(mockResponse);
 
-        mockMvc.perform(post("/api/v1/visitors/reserve")
+        mockMvc.perform(post("/api/visitors/registration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildRequest("REG-100"))))
                 .andExpect(status().isCreated())
@@ -92,11 +92,11 @@ class VisitorControllerTest {
                 .andExpect(jsonPath("$.data.idempotent").value(false))
                 .andExpect(jsonPath("$.data.bookingStatus").value("PENDING"))
                 .andExpect(jsonPath("$.data.cardNumberIn").value("****7890"))
-                .andExpect(jsonPath("$.data.qrCodeUrlIn").value("http://localhost:8080/api/v1/bookings/REG-100/qr/in"));
+                .andExpect(jsonPath("$.data.qrCodeUrlIn").value("http://localhost:8080/api/bookings/REG-100/qr/in"));
     }
 
     @Test
-    @DisplayName("POST /api/v1/visitors/reserve - 200 OK for duplicate registration (Idempotent)")
+    @DisplayName("POST /api/visitors/registration - 200 OK for duplicate registration (Idempotent)")
     void testReserveDuplicateBookingSuccess() throws Exception {
         BookingResponseDto idempotentResponse = BookingResponseDto.builder()
                 .registrationId("REG-200")
@@ -106,7 +106,7 @@ class VisitorControllerTest {
 
         when(bookingService.reserveBooking(any(VisitorRegistrationRequest.class))).thenReturn(idempotentResponse);
 
-        mockMvc.perform(post("/api/v1/visitors/reserve")
+        mockMvc.perform(post("/api/visitors/registration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildRequest("REG-200"))))
                 .andExpect(status().isOk())
@@ -115,12 +115,12 @@ class VisitorControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/visitors/reserve - 409 Conflict on slot overlap")
+    @DisplayName("POST /api/visitors/registration - 409 Conflict on slot overlap")
     void testReserveSlotConflict() throws Exception {
         when(bookingService.reserveBooking(any(VisitorRegistrationRequest.class)))
                 .thenThrow(new BookingConflictException("Room is already booked for the selected time slot"));
 
-        mockMvc.perform(post("/api/v1/visitors/reserve")
+        mockMvc.perform(post("/api/visitors/registration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildRequest("REG-300"))))
                 .andExpect(status().isConflict())
@@ -130,7 +130,7 @@ class VisitorControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/visitors/reserve - 400 Bad Request on invalid input")
+    @DisplayName("POST /api/visitors/registration - 400 Bad Request on invalid input")
     void testReserveValidationFailure() throws Exception {
         VisitorRegistrationRequest invalidRequest = VisitorRegistrationRequest.builder()
                 .registrationId("")
@@ -138,7 +138,7 @@ class VisitorControllerTest {
                 .email("not-an-email")
                 .build();
 
-        mockMvc.perform(post("/api/v1/visitors/reserve")
+        mockMvc.perform(post("/api/visitors/registration")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -148,7 +148,7 @@ class VisitorControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/bookings/{id} - 200 OK and QR urls cleared")
+    @DisplayName("DELETE /api/bookings/{id} - 200 OK and QR urls cleared")
     void testCancelBooking() throws Exception {
         BookingResponseDto cancelled = BookingResponseDto.builder()
                 .registrationId("REG-100")
@@ -159,7 +159,7 @@ class VisitorControllerTest {
 
         when(bookingService.cancelBooking("REG-100")).thenReturn(cancelled);
 
-        mockMvc.perform(delete("/api/v1/bookings/REG-100"))
+        mockMvc.perform(delete("/api/bookings/REG-100"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.bookingStatus").value("CANCELLED"))
@@ -167,19 +167,19 @@ class VisitorControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/bookings/{id} - 409 when booking already completed")
+    @DisplayName("DELETE /api/bookings/{id} - 409 when booking already completed")
     void testCancelBookingRejectsTerminalState() throws Exception {
         when(bookingService.cancelBooking("REG-100"))
                 .thenThrow(new InvalidBookingStateException("Booking REG-100 is already COMPLETED and cannot be cancelled"));
 
-        mockMvc.perform(delete("/api/v1/bookings/REG-100"))
+        mockMvc.perform(delete("/api/bookings/REG-100"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value(
                         org.hamcrest.Matchers.containsString("already COMPLETED")));
     }
 
     @Test
-    @DisplayName("POST /api/v1/events/nuveq-webhook - 200 OK processing check-in card event")
+    @DisplayName("POST /api/events/nuveq-webhook - 200 OK processing check-in card event")
     void testWebhookEventSuccess() throws Exception {
         String eventPayload = """
                 {
@@ -198,7 +198,7 @@ class VisitorControllerTest {
                         .matchedRegistrationId("REG-100")
                         .build());
 
-        mockMvc.perform(post("/api/v1/events/nuveq-webhook")
+        mockMvc.perform(post("/api/events/nuveq-webhook")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventPayload))
                 .andExpect(status().isOk())

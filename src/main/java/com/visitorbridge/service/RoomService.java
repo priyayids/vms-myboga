@@ -119,6 +119,7 @@ public class RoomService {
                 .customName(request.getCustomName())
                 .siteId(request.getSiteId())
                 .liftGroupId(request.getLiftGroupId() != null ? request.getLiftGroupId() : 630L)
+                .expireMinutes(resolveExpireMinutes(request.getExpireMinutes()))
                 .doors(new ArrayList<>())
                 .build();
         room = roomRepository.save(room);
@@ -148,6 +149,9 @@ public class RoomService {
         }
         if (request.getLiftGroupId() != null) {
             room.setLiftGroupId(request.getLiftGroupId());
+        }
+        if (request.getExpireMinutes() != null) {
+            room.setExpireMinutes(resolveExpireMinutes(request.getExpireMinutes()));
         }
 
         if (request.getDoorNuveqIds() != null) {
@@ -208,10 +212,16 @@ public class RoomService {
                 .customName(room.getCustomName())
                 .siteId(room.getSiteId())
                 .liftGroupId(room.getLiftGroupId())
+                .expireMinutes(room.getExpireMinutes())
                 .doors(doorDtos)
                 .createdAt(room.getCreatedAt())
                 .updatedAt(room.getUpdatedAt())
                 .build();
+    }
+
+    /** Guards against zero/negative grace windows; the global default applies when unset. */
+    private Integer resolveExpireMinutes(Integer requested) {
+        return (requested != null && requested > 0) ? requested : 15;
     }
 
     private DoorResponseDto toDoorResponseDto(Door door) {

@@ -16,8 +16,8 @@ This skill covers end-to-end and unit testing procedures for the Visitor Middlew
    - `NuveqClientTest`: Mock RestClient responses (200, 4xx, 5xx, timeout) and verify retry behavior.
 
 2. **Integration Tests (`@SpringBootTest`, `@AutoConfigureMockMvc`)**:
-   - Test `/api/v1/visitors/reserve` endpoint.
-   - Test Webhook event endpoint `/api/v1/events/nuveq-webhook`.
+   - Test `/api/visitors/registration` endpoint.
+   - Test Webhook event endpoint `/api/events/nuveq-webhook`.
    - Test GlobalExceptionHandler format.
    - Test Flyway migration execution against real PostgreSQL or H2/Testcontainers.
 

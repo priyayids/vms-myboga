@@ -46,6 +46,16 @@ public class Room {
     @Column(name = "lift_group_id")
     private Long liftGroupId = 630L;
 
+    /**
+     * Minutes after {@code visitStart} during which the visitor may still tap in.
+     * When no check-in event has arrived by {@code visitStart + expireMinutes},
+     * the booking is auto-expired (auto check-out) and the room slot becomes
+     * bookable again. Falls back to {@code vms.booking.expiry-minutes} when null.
+     */
+    @Builder.Default
+    @Column(name = "expire_minutes")
+    private Integer expireMinutes = 15;
+
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     private List<Door> doors = new ArrayList<>();

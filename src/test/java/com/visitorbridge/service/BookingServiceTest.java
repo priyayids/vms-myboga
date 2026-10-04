@@ -146,7 +146,7 @@ class BookingServiceTest {
         when(qrCodeService.generateAndSave(anyString(), anyString()))
                 .thenAnswer(inv -> inv.getArgument(1) + ".png");
         when(qrCodeService.buildServeUrl(anyString(), anyString()))
-                .thenAnswer(inv -> "http://localhost:8080/api/v1/bookings/" + inv.getArgument(0) + "/qr/" + inv.getArgument(1));
+                .thenAnswer(inv -> "http://localhost:8080/api/bookings/" + inv.getArgument(0) + "/qr/" + inv.getArgument(1));
     }
 
     @Test
@@ -535,7 +535,7 @@ class BookingServiceTest {
                 .thenReturn(nuveqResponse(1L, 2L));
         when(qrCodeService.generateAndSave(anyString(), anyString())).thenReturn(null);
         when(qrCodeService.buildServeUrl(anyString(), anyString()))
-                .thenAnswer(inv -> "http://localhost:8080/api/v1/bookings/" + inv.getArgument(0) + "/qr/" + inv.getArgument(1));
+                .thenAnswer(inv -> "http://localhost:8080/api/bookings/" + inv.getArgument(0) + "/qr/" + inv.getArgument(1));
 
         BookingResponseDto response = bookingService.reserveBooking(buildRequest("REG-6"));
 
@@ -680,5 +680,39 @@ class BookingServiceTest {
         verify(nuveqVisitorClient).deleteVisitorRegistration(444L);
         verify(qrCodeService).deleteQrCode("qr-codes/REG-11_in.png");
         verify(qrCodeService).deleteQrCode("qr-codes/REG-11_out.png");
+    }
+
+    @Test
+    @DisplayName("expiry uses the room's expireMinutes counted from visitStart")
+    void expiryUsesRoomExpireMinutes() {
+        Room strictRoom = Room.builder().id(9L).customName("Server Room").expireMinutes(1).build();
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        // No check-in within 1 minute of visitStart -> expired.
+        Booking stale = Booking.builder()
+                .registrationId("REG-13")
+                .bookingStatus(BookingStatus.PENDING)
+                .visitStart(now.minusMinutes(2))
+                .visitEnd(now.plusHours(1))
+                .room(strictRoom)
+                .build();
+
+        // visitStart 30s ago, 1-minute grace -> still pending.
+        Booking fresh = Booking.builder()
+                .registrationId("REG-14")
+                .bookingStatus(BookingStatus.PENDING)
+                .visitStart(now.minusSeconds(30))
+                .visitEnd(now.plusHours(1))
+                .room(strictRoom)
+                .build();
+
+        when(bookingRepository.findByBookingStatus(BookingStatus.PENDING)).thenReturn(List.of(stale, fresh));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        bookingService.expirePendingBookings();
+
+        assertThat(stale.getBookingStatus()).isEqualTo(BookingStatus.EXPIRED);
+        assertThat(fresh.getBookingStatus()).isEqualTo(BookingStatus.PENDING);
+        verify(nuveqVisitorClient, never()).deleteVisitorRegistration(any());
     }
 }

@@ -16,14 +16,14 @@
 | **Ph-2** | ~~`BookingMapper` (MapStruct)~~ | ⛔ SKIPPED | Response DTOs need masked card numbers + door-name resolution + QR URL building — not a pure field copy, so mapping lives in `BookingService.mapToResponseDto` |
 | **Ph-3** | `BookingService.reserve()` — validate + insert + call Nuveq x2 | ✅ DONE | `reserveBooking`: window validation → overlap check → Nuveq IN/OUT → QR → single insert |
 | **Ph-3** | `BookingService.getAvailability()` — slot grid for a date | ✅ DONE | 13 slots, 09:00–22:00, configurable via `vms.booking.*` |
-| **Ph-3** | `VisitorController` — update `POST /reserve` to use BookingService | ✅ DONE | 201 Created new / 200 OK idempotent; path kept per `UI-requirement.md` |
-| **Ph-3** | `RoomController` — add `GET /rooms/{id}/availability` | ✅ DONE | `GET /api/v1/rooms/{roomId}/availability?date=YYYY-MM-DD` |
+| **Ph-3** | `VisitorController` — `POST /api/visitors/registration` uses BookingService | ✅ DONE | 201 Created new / 200 OK idempotent; renamed from `/reserve` and version prefix dropped (2026-10-04) |
+| **Ph-3** | `RoomController` — add `GET /rooms/{id}/availability` | ✅ DONE | `GET /api/rooms/{roomId}/availability?date=YYYY-MM-DD` |
 | **Ph-3b** | Add ZXing dependency to `pom.xml` | ✅ DONE | `com.google.zxing:core` + `javase` 3.5.3 via `${zxing.version}` |
 | **Ph-3b** | `QrCodeService` — generate PNG from credentialNumber string | ✅ DONE | 300×300, EC level M, margin 2, path from `vms.qr.storage-path` |
 | **Ph-3b** | Integrate QR generation into `BookingService.reserve()` after Nuveq calls | ✅ DONE | Failure logs WARN and **does not** fail the booking |
 | **Ph-3b** | Store `qr_code_path_in` / `qr_code_path_out` in bookings table | ✅ DONE | Relative path (`qr-codes/{regId}_in.png`) |
-| **Ph-3b** | `GET /api/v1/bookings/{registrationId}/qr/in` — serve QR image | ✅ DONE | `BookingController`; `image/png`, `inline` disposition |
-| **Ph-3b** | `GET /api/v1/bookings/{registrationId}/qr/out` — serve QR image | ✅ DONE | Same handler, `type={in|out}`; 400 on other values, 404 if file/booking missing |
+| **Ph-3b** | `GET /api/bookings/{registrationId}/qr/in` — serve QR image | ✅ DONE | `BookingController`; `image/png`, `inline` disposition |
+| **Ph-3b** | `GET /api/bookings/{registrationId}/qr/out` — serve QR image | ✅ DONE | Same handler, `type={in|out}`; 400 on other values, 404 if file/booking missing |
 | **Ph-3b** | Include `qrCodeUrlIn` / `qrCodeUrlOut` in reserve response DTO | ✅ DONE | Built from `vms.qr.base-serve-url`; null when QR failed |
 | **Ph-4** | `WebhookEventHandler` — update to match on `card_number_in/out` fields | ✅ DONE | `BookingService.processCardEvent`; `WebhookCardEventListener` + `EventWebhookController` both routed to it |
 | **Ph-4** | Webhook CHECK_IN → `booking_status = ACTIVE` | ✅ DONE | `direction=IN` + `card_number_in` + status `PENDING` |
@@ -171,7 +171,7 @@ Config property:
 #### New: Date Picker → Room Availability
 When user selects a room AND a date:
 ```js
-GET /api/v1/rooms/{roomId}/availability?date=YYYY-MM-DD
+GET /api/rooms/{roomId}/availability?date=YYYY-MM-DD
 ```
 Render 13 hour-buttons (9 AM → 10 PM).  
 Disabled button shows tooltip: `"Already booked (REG-...)"`.
@@ -190,11 +190,11 @@ if (response.status === 409) {
 ```
 
 #### Confirmation Screen — Display QR Codes
-On successful `POST /reserve`, response includes `qrCodeUrlIn` / `qrCodeUrlOut`:
+On successful `POST /api/visitors/registration`, response includes `qrCodeUrlIn` / `qrCodeUrlOut`:
 ```js
 // Render QR image
-<img src="/api/v1/bookings/REG-20261003-8921/qr/in" alt="Check-In QR" />
-<img src="/api/v1/bookings/REG-20261003-8921/qr/out" alt="Check-Out QR" />
+<img src="/api/bookings/REG-20261003-8921/qr/in" alt="Check-In QR" />
+<img src="/api/bookings/REG-20261003-8921/qr/out" alt="Check-Out QR" />
 ```
 
 ---
@@ -230,7 +230,7 @@ When a door reader scans the QR, it reads the number and matches it to the Nuveq
 Project root (host):   ./data/qr-codes/
 In Docker container:   /app/data/qr-codes/
 DB stored path:        qr-codes/REG-20261003-8921_in.png   ← relative to base dir
-Served via:            GET /api/v1/bookings/{regId}/qr/in
+Served via:            GET /api/bookings/{regId}/qr/in
 ```
 
 **Why not store as base64 in DB?**
@@ -266,7 +266,7 @@ public class QrCodeService {
 
 #### `BookingController` — QR Serve Endpoint
 ```java
-@GetMapping("/api/v1/bookings/{registrationId}/qr/{type}")
+@GetMapping("/api/bookings/{registrationId}/qr/{type}")
 public ResponseEntity<Resource> getQrCode(
         @PathVariable String registrationId,
         @PathVariable String type) {   // "in" or "out"

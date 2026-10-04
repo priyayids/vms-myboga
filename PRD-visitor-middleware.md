@@ -117,7 +117,7 @@ Migration `V1` creates the table with `status_entry boolean not null default fal
 ## 6. Functional Requirements
 
 ### FR-1 Receive registration
-- Expose POST reserve API for the client's  Make Costume endpoint, dont expose the nuvex endpoint create something like "reserve" in it for reserve registration from the client side 
+- Expose a custom POST endpoint for the client to submit a registration — `POST /api/visitors/registration`. Do not expose the raw Nuveq visitor-creation endpoint to the client; the middleware owns the Nuveq contract.
 - Validate with Jakarta Bean Validation annotations (`@NotBlank`, `@Email`, etc.). Invalid input returns HTTP 400 with field-level messages.
 - Duplicate submissions (same `registrationId`) return the existing result instead of creating new records. This property is called **idempotency**: repeating the same request has the same effect as sending it once.
 
@@ -157,6 +157,11 @@ Migration `V1` creates the table with `status_entry boolean not null default fal
 | Unexpected exception | Caught by the global handler, HTTP 500, generic message to the client, full detail in the log |
 
 All error responses share one JSON shape: `timestamp`, `status`, `error`, `message`, `path`.
+
+### FR-6 Per-room booking expiry (auto check-out)
+- Every room master record carries an `expireMinutes` value (default 15), settable via the room admin API.
+- The grace window is counted from the booking's `visitStart`. If no check-in card event has arrived by `visitStart + expireMinutes`, the booking is automatically expired (auto check-out): the Nuveq registrations and QR codes are released and the room slot becomes bookable again.
+- Rooms without a configured value fall back to the global `vms.booking.expiry-minutes`.
 
 ## 7. Configuration and Secrets
 

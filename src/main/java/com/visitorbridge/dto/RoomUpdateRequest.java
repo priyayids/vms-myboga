@@ -21,5 +21,8 @@ public class RoomUpdateRequest {
 
     private Long liftGroupId;
 
+    /** Minutes after visitStart with no check-in before the booking auto-expires. */
+    private Integer expireMinutes;
+
     private List<Long> doorNuveqIds;
 }

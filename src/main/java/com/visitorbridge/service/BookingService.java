@@ -395,32 +395,53 @@ public class BookingService {
 
     // --- Expiry Scheduler ---
 
+    /**
+     * Auto check-out for no-show visitors.
+     *
+     * <p>The grace window is counted from the booking's {@code visitStart} and is
+     * configured per room ({@code room.expire_minutes}); when no IN card event
+     * has arrived by {@code visitStart + expireMinutes}, the booking is expired
+     * (auto check-out). The freed slot becomes bookable again because the
+     * availability and overlap checks only count PENDING and ACTIVE bookings.
+     *
+     * <p>Rooms without a configured value (legacy rows) fall back to the global
+     * {@code vms.booking.expiry-minutes}.
+     */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void expirePendingBookings() {
-        OffsetDateTime cutoff = OffsetDateTime.now(ZoneOffset.UTC)
-                .minusMinutes(vmsProperties.getBooking().getExpiryMinutes());
-        List<Booking> pending = bookingRepository.findByBookingStatus(BookingStatus.PENDING).stream()
-                .filter(b -> b.getVisitStart().isBefore(cutoff))
-                .toList();
-
+        List<Booking> pending = bookingRepository.findByBookingStatus(BookingStatus.PENDING);
         if (pending.isEmpty()) {
             return;
         }
 
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         for (Booking b : pending) {
             try {
+                OffsetDateTime deadline = b.getVisitStart().plusMinutes(expireMinutesFor(b.getRoom()));
+                if (!now.isAfter(deadline)) {
+                    continue;
+                }
+
                 b.setBookingStatus(BookingStatus.EXPIRED);
                 bookingRepository.save(b);
 
                 releaseNuveqAndQr(b);
 
                 transactionLogger.logTransaction("BookingExpiryScheduler", b.getRegistrationId(), "BOOKING_EXPIRED", "SUCCESS",
-                        "roomId=" + (b.getRoom() != null ? b.getRoom().getId() : "N/A"));
+                        "roomId=" + (b.getRoom() != null ? b.getRoom().getId() : "N/A")
+                                + " deadline=" + deadline);
             } catch (Exception e) {
                 log.error("Failed to expire booking {}: {}", b.getRegistrationId(), e.getMessage(), e);
             }
         }
+    }
+
+    private int expireMinutesFor(Room room) {
+        if (room != null && room.getExpireMinutes() != null && room.getExpireMinutes() > 0) {
+            return room.getExpireMinutes();
+        }
+        return vmsProperties.getBooking().getExpiryMinutes();
     }
 
     @Scheduled(cron = "0 * * * * *")

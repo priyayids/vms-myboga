@@ -23,5 +23,8 @@ public class RoomCreateRequest {
 
     private Long liftGroupId;
 
+    /** Minutes after visitStart with no check-in before the booking auto-expires (default 15). */
+    private Integer expireMinutes;
+
     private List<Long> doorNuveqIds;
 }

@@ -16,13 +16,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/visitors")
+@RequestMapping("/api/visitors")
 @RequiredArgsConstructor
 public class VisitorController {
 
     private final BookingService bookingService;
 
-    @PostMapping("/reserve")
+    @PostMapping("/registration")
     public ResponseEntity<ApiResponse<BookingResponseDto>> reserveVisitor(
             @Valid @RequestBody VisitorRegistrationRequest request) {
         log.info("Reservation received: registrationId={} roomId={}", request.getRegistrationId(), request.getRoomId());

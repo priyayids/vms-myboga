@@ -140,7 +140,7 @@ public class QrCodeService {
 
     public String buildServeUrl(String registrationId, String type) {
         return vmsProperties.getQr().getBaseServeUrl()
-                + "/api/v1/bookings/" + registrationId + "/qr/" + type;
+                + "/api/bookings/" + registrationId + "/qr/" + type;
     }
 
     private Path resolve(String storedPath) {

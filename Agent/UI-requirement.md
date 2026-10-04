@@ -6,7 +6,7 @@
 
 ## 1. Executive Summary
 
-This document defines the functional, UX/UI, and integration requirements for the **Visitor Registration Form UI** (`vms-form`). This standalone frontend application allows visitors or front-desk staff to submit registration details. Upon submission, it sends data to the Visitor Middleware Service (`POST /api/v1/visitors/reserve`), which orchestrates time-slot booking + dual-instance visitor registration with the Nuveq Access Control System.
+This document defines the functional, UX/UI, and integration requirements for the **Visitor Registration Form UI** (`vms-form`). This standalone frontend application allows visitors or front-desk staff to submit registration details. Upon submission, it sends data to the Visitor Middleware Service (`POST /api/visitors/registration`), which orchestrates time-slot booking + dual-instance visitor registration with the Nuveq Access Control System.
 
 ---
 
@@ -15,9 +15,9 @@ This document defines the functional, UX/UI, and integration requirements for th
 ```
 [ Visitor Registration UI (Web/Tablet) — vms-form ]
                 |
-                |  POST /api/v1/visitors/reserve (JSON)
-                |  GET  /api/v1/rooms/{id}/availability?date=YYYY-MM-DD
-                |  GET  /api/v1/rooms
+                |  POST /api/visitors/registration (JSON)
+                |  GET  /api/rooms/{id}/availability?date=YYYY-MM-DD
+                |  GET  /api/rooms
                 v
 [ Visitor Middleware Service (Port 8080) — vms-myboga ]
        |                         |
@@ -55,7 +55,7 @@ flowchart LR
 | Field Name | JSON Key | Type | UI Component | Required | Validation Rules |
 |---|---|---|---|---|---|
 | **Registration ID** | `registrationId` | String | Hidden / Auto-generated | **Yes** | `REG-YYYYMMDD-XXXXXX`. Generated once on form open. |
-| **Room** | `roomId` | Number | Select Dropdown | **Yes** | Fetched from `GET /api/v1/rooms`. |
+| **Room** | `roomId` | Number | Select Dropdown | **Yes** | Fetched from `GET /api/rooms`. |
 | **Visit Date** | *(UI only)* | Date | Date Picker | **Yes** | Today or future only. Triggers availability fetch. |
 | **Visit Start Hour** | `visitStart` | ISO-8601 String | Hour Button Grid | **Yes** | From hour picker. Format: `2026-10-03T09:00:00+07:00`. |
 | **Visit End Hour** | `visitEnd` | ISO-8601 String | Hour Button Grid | **Yes** | Must be > visitStart. Max 22:00. |
@@ -78,7 +78,7 @@ flowchart LR
 ### Behavior
 1. User selects a **room** from dropdown
 2. User selects a **date** from date picker
-3. UI immediately calls: `GET /api/v1/rooms/{roomId}/availability?date=YYYY-MM-DD`
+3. UI immediately calls: `GET /api/rooms/{roomId}/availability?date=YYYY-MM-DD`
 4. Hour buttons render for **09 AM → 10 PM** (13 buttons total):
    - **Green / enabled**: Available — clickable
    - **Gray / disabled**: Already booked — shows tooltip `"Already booked"`
@@ -105,7 +105,7 @@ const visitEnd   = `${selectedDate}T${String(endHour  ).padStart(2,'0')}:00:00+0
 
 ### Request
 - **Method**: `POST`
-- **URL**: `/api/v1/visitors/reserve`
+- **URL**: `/api/visitors/registration`
 - **Content-Type**: `application/json`
 
 #### Complete Request Payload Example
@@ -161,7 +161,7 @@ const visitEnd   = `${selectedDate}T${String(endHour  ).padStart(2,'0')}:00:00+0
   "status": 409,
   "error": "Conflict",
   "message": "Room is already booked for the selected time slot",
-  "path": "/api/v1/visitors/reserve"
+  "path": "/api/visitors/registration"
 }
 ```
 **UI Action**: Show alert banner. Highlight the hour picker. User must pick different hours.
@@ -203,7 +203,7 @@ const visitEnd   = `${selectedDate}T${String(endHour  ).padStart(2,'0')}:00:00+0
 ## 7. Room Availability Endpoint
 
 - **Method**: `GET`
-- **URL**: `/api/v1/rooms/{roomId}/availability?date=YYYY-MM-DD`
+- **URL**: `/api/rooms/{roomId}/availability?date=YYYY-MM-DD`
 
 ```json
 {
@@ -266,12 +266,12 @@ Upon successful response:
 ### Endpoints
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/v1/rooms` | List all rooms with doors |
-| `POST` | `/api/v1/rooms` | Create room |
-| `PUT` | `/api/v1/rooms/{id}` | Update room name and door mapping |
-| `DELETE` | `/api/v1/rooms/{id}` | Delete room |
-| `GET` | `/api/v1/rooms/doors` | List all Nuveq doors with mapping status |
-| `POST` | `/api/v1/rooms/sync` | Sync doors from Nuveq |
+| `GET` | `/api/rooms` | List all rooms with doors |
+| `POST` | `/api/rooms` | Create room |
+| `PUT` | `/api/rooms/{id}` | Update room name and door mapping |
+| `DELETE` | `/api/rooms/{id}` | Delete room |
+| `GET` | `/api/rooms/doors` | List all Nuveq doors with mapping status |
+| `POST` | `/api/rooms/sync` | Sync doors from Nuveq |
 
 ### List Rooms Response
 ```json

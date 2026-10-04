@@ -19,6 +19,7 @@ public class RoomResponseDto {
     private String customName;
     private Long siteId;
     private Long liftGroupId;
+    private Integer expireMinutes;
     private List<DoorResponseDto> doors;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
