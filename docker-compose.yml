@@ -29,6 +29,11 @@ services:
     container_name: visitor-middleware-app
     ports:
       - "127.0.0.1:8080:8080"
+    # See docker-compose.prod.yml: without this the JVM cannot resolve hostnames
+    # on a systemd-resolved host, and every Nuveq call fails at runtime.
+    dns:
+      - ${DOCKER_DNS_1:-1.1.1.1}
+      - ${DOCKER_DNS_2:-8.8.8.8}
     environment:
       DB_URL: jdbc:postgresql://db:5432/visitor_bridge
       DB_USERNAME: postgres

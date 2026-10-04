@@ -23,6 +23,46 @@ staying out of their way:
 | Build runs on **GitHub's runners** | A Maven + Docker build on this 2-vCPU box would compete with 9 running containers. The deploy here is only `compose pull` + `up -d`. |
 | Container runs as **uid 10001** | Internet-facing container on a shared production host. A uid is fixed so host bind mounts can be chowned to match. |
 | `restart: always` + json-file log caps | Restart on crash/reboot; logs capped at 10 MB × 3 so one chatty service cannot eat the shared disk. |
+| `dns:` pinned on the app container | See below — without it the JVM cannot resolve anything on this host. |
+
+### The DNS trap (this one would have shipped a broken service)
+
+Both the dev machine and the VPS have the same `systemd-resolved` setup:
+
+```
+nameserver 127.0.0.53
+search .
+```
+
+Inside Docker, `127.0.0.53` is not reachable — Docker's embedded resolver at
+`127.0.0.11` forwards to it. glibc clients cope, **`curl` from inside the
+container returns 200**, and the app reports itself perfectly healthy. But the
+JVM's own resolver does not cope, so every outbound call fails:
+
+```
+Failed to fetch doors from Nuveq: I/O error on GET request for
+  "https://api-v2.nuveq.cloud/api/visitors/doors": null
+Caused by: java.nio.channels.UnresolvedAddressException: null
+```
+
+The `null` message is what makes it hard to read. The damage is silent: the
+healthcheck passes, `/actuator/health` says `UP`, the doors list is just
+empty, and the card-event poller logs the same error every 10 seconds forever.
+
+Fix — per container, so no other stack on the host is affected:
+
+```yaml
+    dns:
+      - ${DOCKER_DNS_1:-1.1.1.1}
+      - ${DOCKER_DNS_2:-8.8.8.8}
+```
+
+After this the startup sync succeeded on the first try (`total=6`). Changing
+the Docker daemon's default DNS instead would have been the tidier fix but
+would have altered name resolution for all nine existing containers, which is
+exactly the kind of blast radius to avoid on a shared host.
+
+**If doors or Nuveq calls are ever empty again, check this first.**
 
 ---
 
@@ -250,6 +290,11 @@ curl -fsS http://127.0.0.1:8080/actuator/health
 
 # backend, public
 curl -fsS https://api.app-cube.tech/actuator/health
+
+# Nuveq connectivity from inside the app container - this is the check that
+# would have caught the DNS trap
+docker exec vms-myboga-app curl -sS -o /dev/null -w '%{http_code}\n' https://api-v2.nuveq.cloud/
+docker logs vms-myboga-app 2>&1 | grep -i "doors synchronization completed"
 
 # certificate
 openssl s_client -connect api.app-cube.tech:443 -servername api.app-cube.tech </dev/null 2>/dev/null \

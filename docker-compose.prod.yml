@@ -56,6 +56,17 @@ services:
     logging: *default-logging
     ports:
       - "127.0.0.1:8080:8080"
+    # The host runs systemd-resolved, whose stub resolver on 127.0.0.53 is not
+    # reachable from inside Docker's embedded DNS (127.0.0.11). glibc clients
+    # cope, but the JVM's resolver does not: every outbound call fails with
+    # UnresolvedAddressException, which silently breaks the Nuveq door sync and
+    # the card-event poller while the app still reports itself healthy.
+    # Verified on this host and on the VPS, which share the same resolver
+    # setup. Pinning public resolvers per container fixes it without touching
+    # the daemon config, which would affect every other stack on the host.
+    dns:
+      - ${DOCKER_DNS_1:-1.1.1.1}
+      - ${DOCKER_DNS_2:-8.8.8.8}
     environment:
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-visitor_bridge}
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME must be set in .env}
