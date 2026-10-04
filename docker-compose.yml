@@ -1,3 +1,9 @@
+# Local development stack. For the VPS use docker-compose.prod.yml instead.
+#
+# Before the first `up`, give the bind-mounted dirs to the image's non-root
+# user, otherwise the app cannot write its logs or QR codes:
+#   sudo chown -R 10001:10001 logs data/qr-codes
+
 services:
   db:
     image: postgres:16-alpine
@@ -6,8 +12,10 @@ services:
       POSTGRES_DB: visitor_bridge
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    # Loopback only: a published 0.0.0.0:5432 would expose an unauthenticated
+    # Postgres to everything on the LAN.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +28,7 @@ services:
     build: .
     container_name: visitor-middleware-app
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       DB_URL: jdbc:postgresql://db:5432/visitor_bridge
       DB_USERNAME: postgres

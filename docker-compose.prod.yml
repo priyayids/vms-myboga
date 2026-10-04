@@ -1,0 +1,92 @@
+# Production stack for the Visitor Middleware Service.
+#
+# Run on the VPS from /srv/vms-myboga:
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d --no-build
+#
+# CI/CD does exactly that after pulling the image from GHCR (see
+# .github/workflows/deploy.yml and deploy/deploy.sh).
+#
+# Deliberate choices, do not "simplify" them:
+#   * db has NO `ports:`. It is only reachable from the app over the private
+#     compose network. The host already runs native PostgreSQL on 5432/5433 and
+#     a public Postgres port would be an unauthenticated hole in the UFW.
+#   * app publishes 127.0.0.1 only. The host UFW allows just 22/80/443/2222, so
+#     the only way in is the host nginx reverse proxy.
+name: vms-myboga
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vms-db
+    restart: always
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${DB_NAME:-visitor_bridge}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME must be set in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      TZ: Asia/Jakarta
+    volumes:
+      - vms_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME:-visitor_bridge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - vms_net
+
+  app:
+    # GHCR image built by CI. `build` stays as a fallback so the stack can still
+    # be brought up on a machine that cannot reach the registry.
+    image: ghcr.io/${GHCR_OWNER:-priyayids}/vms-myboga:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vms-myboga-app
+    restart: always
+    logging: *default-logging
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-visitor_bridge}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME must be set in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      NUVEQ_BASE_URL: ${NUVEQ_BASE_URL:-https://api-v2.nuveq.cloud}
+      NUVEQ_API_KEY: ${NUVEQ_API_KEY:?NUVEQ_API_KEY must be set in .env}
+      # "polling" pulls Nuveq card events via GET /api/events. "webhook" waits
+      # for Nuveq to POST to us, which needs the callback URL configured on the
+      # Nuveq side. Flip this one variable once that is done.
+      NUVEQ_EVENT_MODE: ${NUVEQ_EVENT_MODE:-polling}
+      NUVEQ_POLL_INTERVAL_MS: ${NUVEQ_POLL_INTERVAL_MS:-10000}
+      # Absolute https base used to build QR-code URLs.
+      APP_BASE_URL: ${APP_BASE_URL:-https://api.app-cube.tech}
+      QR_STORAGE_PATH: /app/data/qr-codes
+      TZ: Asia/Jakarta
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Host dirs must be chowned to 10001:10001 to match the non-root
+      # container user. See deploy/deploy.sh.
+      - ./logs:/app/logs
+      - ./data/qr-codes:/app/data/qr-codes
+    networks:
+      - vms_net
+
+volumes:
+  vms_pgdata:
+    name: vms_pgdata
+
+networks:
+  vms_net:
+    name: vms_net
+    driver: bridge

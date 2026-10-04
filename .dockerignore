@@ -1,0 +1,28 @@
+# Keep the build context small and make sure nothing local leaks into the image.
+# The Dockerfile only needs pom.xml and src/, so everything else is dead weight
+# (target/ alone is ~50 MB of jar output) or a secret risk.
+
+target/
+logs/
+data/
+
+# Never bake local secrets into a public image
+.env
+.env.*
+!.env.example
+
+.git/
+.github/
+.gitignore
+
+# Agent notes / docs / IDE metadata are not runtime inputs
+Agent/
+*.md
+!README.md
+
+.idea/
+.vscode/
+*.iml
+Dockerfile
+.dockerignore
+docker-compose*.yml

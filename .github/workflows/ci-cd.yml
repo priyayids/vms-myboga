@@ -1,0 +1,195 @@
+name: CI/CD
+
+# main -> build image -> push to GHCR -> rolling deploy on the VPS.
+# The Maven/Docker build runs entirely on GitHub's runners: the VPS is a
+# 2-vCPU production box already serving 9 containers, so it only ever runs
+# `docker compose pull` + `up -d`.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two deploys race. Queued instead of cancelled, so a half-finished
+# release cannot be interrupted.
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------- CI: unit tests
+  test:
+    name: Unit tests (H2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: mvn verify
+        run: mvn -B verify
+
+  # ------------------------------------------------- CI: real Postgres boot check
+  # src/test/resources/application.yml runs on H2 with flyway disabled and
+  # ddl-auto=create-drop, so the unit suite never exercises the migrations.
+  # This job is what proves V1..V7 apply on PostgreSQL 16 and that Hibernate's
+  # `ddl-auto: validate` agrees with the resulting schema. A mismatch here is a
+  # guaranteed production boot failure, so it is gated before the image builds.
+  migration-smoke:
+    name: Flyway + Hibernate validate on PostgreSQL 16
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: visitor_bridge
+          POSTGRES_USER: vms_app
+          POSTGRES_PASSWORD: smoke-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vms_app -d visitor_bridge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build jar
+        run: mvn -B -DskipTests package
+
+      - name: Boot the jar against real PostgreSQL
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/visitor_bridge
+          DB_USERNAME: vms_app
+          DB_PASSWORD: smoke-test-password
+          # Unroutable on purpose: nothing should call Nuveq during a smoke test.
+          # webhook mode also avoids starting the poller.
+          NUVEQ_BASE_URL: http://localhost:9
+          NUVEQ_API_KEY: smoke-test-key
+          NUVEQ_EVENT_MODE: webhook
+        run: |
+          set -uo pipefail
+          nohup java -jar target/visitor-middleware-*.jar > boot.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/actuator/health > health.json 2>/dev/null; then
+              break
+            fi
+            sleep 5
+          done
+          echo "--- health ---"
+          cat health.json 2>/dev/null || echo "no health response"
+          echo "--- boot log tail ---"
+          tail -40 boot.log
+          grep -q '"status":"UP"' health.json
+          grep -q 'Started VisitorMiddlewareApplication' boot.log
+
+      - name: Every migration applied
+        run: |
+          docker run --rm --network host -e PGPASSWORD=smoke-test-password \
+            postgres:16-alpine psql -h localhost -U vms_app -d visitor_bridge \
+            -c "select installed_rank, version, description, success from flyway_schema_history order by installed_rank"
+          docker run --rm --network host -e PGPASSWORD=smoke-test-password \
+            postgres:16-alpine psql -h localhost -U vms_app -d visitor_bridge \
+            -tAc "select count(*) from flyway_schema_history where not success" | grep -qx 0
+          # V7 is the newest migration and the one that had never been committed.
+          docker run --rm --network host -e PGPASSWORD=smoke-test-password \
+            postgres:16-alpine psql -h localhost -U vms_app -d visitor_bridge \
+            -tAc "select count(*) from information_schema.columns where table_name='room' and column_name='expire_minutes'" | grep -qx 1
+
+  # ------------------------------------------------------- CD: build and push image
+  build-image:
+    name: Build and push image to GHCR
+    needs: [test, migration-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------------ CD: deploy
+  deploy:
+    name: Deploy to VPS
+    needs: build-image
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          # Host keys are public information, so pinning them in the repo is
+          # correct: it is what stops a DNS/MITM hijack of the deploy.
+          VPS_HOST_KEY: |
+            187.77.126.196 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOSg9YsNj5m1p5fGIDsiFwKwwAN0WnfqIfJBQTRQhP3M
+            187.77.126.196 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJWyup4uTMbeOQ0KYP8I8QChZc8sdAdNPbqnvXgc+HRuY40xxOnQD3zdbPT2QMO3w65u4wJbYKk9KGeY05v7Qyk
+            187.77.126.196 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDOpDoBILf6g41mNsktKNKdte/yvAVDe53i17Q1POFtBniRN4vsx2OSA6y/7xYwyLZVnBrdDrWbbXWwHHk2y52WcSc1QzLNVOfK8PwX/x0h7xP57sYluQRO+j7IQoidMTIZ+QPPZT4I4Box6fMqe/ySrABT4aJ/PGZOzop8pKfnav9+M9MZxEYZrQU4q3iXqlph/wNsx7OsKr4KpmSZYbgtZo7ud9aQHFU7L7M+bKspPFODwqjt5BnNFlRn90dRbbP4xU0gkm3uiRcbuBgtjGfPsrkD6dWzsp5eh6WCIDSv7ccAu5pbwUGQ4Ir/7yyT/GHbWcmSP0jnNLg4q11yjXbF9x/67O2uAHflV/vVFIL57DwHfN/do1CkqNfLDaOM0mhPBD26E18Oo5gbN/2wH2e9o9BzOK8/Un4SCgKnw/uikrcRoGHbIaR74FXQ/ssEF6sKs/UEAmLNRk3XKRGuEsCuFs0iGZeDSm0SAzL1AOHdbOc6Fq9qhthsmJHz++1Mwsk=
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Rolling deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          DEPLOY_BRANCH: main
+          GHCR_OWNER: ${{ github.repository_owner }}
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+              -o IdentitiesOnly=yes \
+              -o BatchMode=yes \
+              "$VPS_USER@$VPS_HOST" \
+              "APP_DIR=/srv/vms-myboga DEPLOY_BRANCH=$DEPLOY_BRANCH GHCR_OWNER=$GHCR_OWNER bash /srv/vms-myboga/deploy/deploy.sh"
+
+      - name: Smoke test the public endpoint
+        run: |
+          for _ in $(seq 1 12); do
+            if curl -fsS https://api.app-cube.tech/actuator/health; then
+              echo
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::public health endpoint never became reachable" >&2
+          exit 1
