@@ -18,6 +18,7 @@ staying out of their way:
 | `vms-db` publishes **no** host port | Host already has native PostgreSQL on `127.0.0.1:5432` (`16-main`) and `5433` (`16-hive`). Not publishing also keeps Postgres off the internet, where UFW would otherwise be the only thing stopping it. |
 | `vms-myboga-app` binds `127.0.0.1:8080` | UFW policy is `DROP` with only 22, 80, 443, 2222 open. Loopback binding means nginx is the only way in. Port 8080 was verified free. |
 | Own network `vms_net` + volume `vms_pgdata` | No name or subnet collision with `bookspace_net`, `bookspace_pgdata`, `device-dashboard-hive-postgres-1`, etc. |
+| nginx site file named **`vms-api.app-cube.tech`**, not `api.app-cube.tech` | See below. The filename decides which vhost becomes nginx's implicit `default_server`, and the obvious name silently took that slot away from `app-cube.tech`. |
 | Cert via **Let's Encrypt DNS-01** | `certbot certonly` writes no nginx config at all. Every other subdomain on this host uses HTTP-01, but DNS-01 keeps the shared nginx untouched and works behind Cloudflare's orange cloud. |
 | nginx change is **one new file** | No existing vhost is edited. `nginx -t` gates `systemctl reload` (reload, never restart, so in-flight connections survive). |
 | Build runs on **GitHub's runners** | A Maven + Docker build on this 2-vCPU box would compete with 9 running containers. The deploy here is only `compose pull` + `up -d`. |
@@ -63,6 +64,44 @@ would have altered name resolution for all nine existing containers, which is
 exactly the kind of blast radius to avoid on a shared host.
 
 **If doors or Nuveq calls are ever empty again, check this first.**
+
+### The nginx default-server trap
+
+`nginx.conf` ends with `include /etc/nginx/sites-enabled/*`, so vhosts are
+loaded in **alphabetical filename order** and the first `listen 443 ssl` block
+with no matching `server_name` becomes the implicit `default_server`.
+
+`api.app-cube.tech` sorts *before* `app-cube.tech` (`api` < `app`, because
+`i` < `p`). So the obvious filename made the new vhost the catch-all for every
+HTTPS request whose `Host` matched nothing — including `webrtc.app-cube.tech`,
+which has DNS but deliberately no vhost of its own.
+
+The symptom was quiet and misleading: `webrtc.app-cube.tech` started returning
+**500**, with a body that was unmistakably the Spring Boot app's own JSON error
+format, because unmatched requests were being proxied to
+`127.0.0.1:8080`. Nothing in the nginx config looked wrong and `nginx -t`
+passed cleanly. Only the before/after comparison of every existing hostname
+caught it.
+
+Fix: name the file so it sorts *after* `app-cube.tech`, which restores the
+original implicit default without editing a single existing file:
+
+```
+app-cube.tech            <- first, implicit default (as before)
+bookspace.app-cube.tech
+campaign.app-cube.tech
+device-dashboard-hive-cast.com
+hive-companion.web.id
+vms-api.app-cube.tech    <- ours
+webrtc.conf
+```
+
+The alternative — marking `app-cube.tech` explicitly `listen 443 ssl
+default_server` — is more robust going forward, but it means editing an
+existing vhost, so it was not done here. Worth doing if this host ever gets
+more services.
+
+**Always diff every pre-existing hostname before and after touching nginx.**
 
 ---
 
@@ -201,7 +240,8 @@ Back up first, then add only the new file:
 tar -czf /root/nginx-backup-$(date +%Y%m%d-%H%M%S).tgz /etc/nginx
 ```
 
-`/etc/nginx/sites-available/api.app-cube.tech`:
+`/etc/nginx/sites-available/vms-api.app-cube.tech`  — note the filename, see
+the default-server trap above:
 
 ```nginx
 server {
@@ -239,7 +279,7 @@ server {
 ```
 
 ```bash
-ln -s /etc/nginx/sites-available/api.app-cube.tech /etc/nginx/sites-enabled/
+ln -s /etc/nginx/sites-available/vms-api.app-cube.tech /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 ```
 
@@ -258,12 +298,37 @@ ssh deploy@187.77.126.196 'APP_DIR=/srv/vms-myboga bash /srv/vms-myboga/deploy/d
 git push origin main
 ```
 
-`deploy.sh` is idempotent, refreshes the compose files with a best-effort
-`git pull --ff-only` (so the deploy never hard-depends on git), pulls the app
-image, brings the stack up with `--no-build`, then blocks until the container
-healthcheck reports healthy and asserts `vms-db` is healthy too. It exits
-non-zero with the last 80 log lines on failure. It never touches the volume, so
-rolling back a bad image keeps the data.
+`deploy.sh` is idempotent, refreshes the checkout with a best-effort
+`git pull --ff-only` **and then re-execs itself**, pulls the app image, brings
+the stack up with `--no-build`, then blocks until the container healthcheck
+reports healthy and asserts `vms-db` is healthy too. It exits non-zero with the
+last 80 log lines on failure. It never touches the volume, so rolling back a
+bad image keeps the data.
+
+### Two bootstrap deadlocks hit on the way (both now fixed, both worth knowing)
+
+**1. A deploy script that updates itself too late.** The first version did the
+`chown` check *before* `git pull`. So the VPS ran the copy of `deploy.sh` from
+its previous checkout, which died on the `chown` before it could fetch the
+version with the `chown` fixed — a deadlock that needed a manual `git pull` to
+break. `deploy.sh` now pulls first and re-execs (`VMS_DEPLOY_REEXEC`), so a
+fix to the deploy script lands on the deploy that carries it.
+
+**2. A stale GHCR token on the `deploy` account.** `/home/deploy/.docker/config.json`
+held a `ghcr.io` credential from 2026-08-03. Docker prefers a stored credential
+over an anonymous token, so pulls failed with `error from registry: denied`
+even though the package is publicly readable — `docker pull` as **root** on the
+same host worked fine at the same moment, which is what made it look like a
+permissions problem rather than a credentials problem. The GHCR packages of a
+public repo are anonymously pullable, so the fix was to remove the dead entry:
+
+```bash
+cp -a ~/.docker/config.json ~/.docker/config.json.stale-20261004   # kept
+# then write {"auths":{}}
+```
+
+If pulls ever start failing with `denied`, check for a leftover credential
+before anything else.
 
 ### Rollback
 

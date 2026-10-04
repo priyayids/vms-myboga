@@ -46,6 +46,18 @@ the poller logging the same error every ten seconds. Fixed with a per-container
 `dns:` entry rather than a daemon-wide change, because the daemon default would
 have altered name resolution for all nine existing containers.
 
+### Three traps hit while deploying (all fixed, all documented in `notes/deployment.md`)
+
+| Trap | Symptom | Fix |
+|---|---|---|
+| Docker embedded DNS vs the JVM | `UnresolvedAddressException` on every Nuveq call, healthcheck still green, doors list empty | per-container `dns:` (not a daemon-wide change) |
+| nginx implicit `default_server` | `api.app-cube.tech` sorted before `app-cube.tech` and became the catch-all vhost, so `webrtc.app-cube.tech` started returning the Spring Boot app's own 500 | renamed the file to `vms-api.app-cube.tech` so `app-cube.tech` keeps first place |
+| Stale GHCR credential on `deploy` | `error from registry: denied` for the deploy user while root pulled the same image fine | removed the dead `ghcr.io` entry from `~/.docker/config.json` (public packages pull anonymously) |
+
+The nginx one is the reason the non-regression check exists: `nginx -t` passed,
+the new vhost looked correct, and nothing errored. Only diffing every
+pre-existing hostname before vs after revealed it.
+
 ### Verification performed
 
 Local stack against real PostgreSQL 16 and the real Nuveq API: Flyway V1-V7 all
@@ -53,7 +65,16 @@ Local stack against real PostgreSQL 16 and the real Nuveq API: Flyway V1-V7 all
 genuine Nuveq booking, repeat with the same `registrationId` -> **200
 idempotent**, both QR codes served as valid PNGs, webhook matched the booking
 and flipped it active, availability endpoint OK, `DELETE` released the
-credential. Test booking cancelled afterwards.
+credential.
+
+Then on the VPS over `https://api.app-cube.tech`: health `UP` with TLS verified,
+Flyway V1-V7 `success` on PostgreSQL 16, 6 doors synced on startup, and the
+same endpoint matrix again (201 / 200 idempotent / both QR PNGs / webhook
+matched / availability / DELETE). CORS preflight from
+`Origin: http://localhost:3000` returns the right allow-origin. All 6 simulated
+Let's Encrypt renewals succeed, ours included, so unattended renewal is
+confirmed. All 9 pre-existing hostnames still return 200 and all 9 pre-existing
+containers are untouched.
 
 ### Notes for whoever picks this up
 
